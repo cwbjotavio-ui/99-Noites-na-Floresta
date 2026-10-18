@@ -2,12 +2,30 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="screen-orientation" content="landscape">
 <title>Chamas da Sobrevivência - Jogo 2D (Multiplayer PC + Celular)</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; font-family: 'Segoe UI', Arial, sans-serif; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-  #gameContainer { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
+  #gameContainer { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; display: flex; justify-content: center; align-items: center; }
+
+  /* ---------- Orientação paisagem no celular ---------- */
+  @media (orientation: portrait) and (pointer: coarse) {
+    #rotateHint { display: flex !important; }
+  }
+  #rotateHint {
+    display: none; position: fixed; inset: 0; z-index: 999;
+    background: rgba(8,8,16,.97); color: #ffd97a; text-align: center;
+    flex-direction: column; justify-content: center; align-items: center; gap: 14px; font-size: 18px;
+  }
+  #rotateHint .rotIcon { font-size: 64px; animation: rotAnim 1.6s ease-in-out infinite; }
+  #rotateHint button { cursor: pointer; background: linear-gradient(90deg,#e67e22,#f39c12); border: none; color: #241503;
+    font-size: 16px; font-weight: bold; padding: 12px 26px; border-radius: 10px; }
+  @keyframes rotAnim { 0%,100% { transform: rotate(0deg); } 55%,75% { transform: rotate(-90deg); } }
   canvas { display: block; background: #2d4a2d; box-shadow: 0 0 40px rgba(0,0,0,.6); image-rendering: pixelated; }
 
   /* ---------- HUD ---------- */
@@ -83,25 +101,33 @@
   .lpNotReady { color: #e74c3c; }
   #connStatus { font-size: 14px; color: #ffb0b0; min-height: 20px; margin-bottom: 8px; }
 
-  /* ---------- Controles de toque (celular) ---------- */
+  /* ---------- Controles de toque (celular) — sempre visíveis em telas sensíveis ao toque ---------- */
   #touchControls { position: absolute; inset: 0; z-index: 15; pointer-events: none; display: none; }
-  body.touch #touchControls.on { display: block; }
-  #joyZone { position: absolute; left: 0; bottom: 0; width: 52%; height: 75%; pointer-events: auto; }
+  @media (pointer: coarse), (max-width: 900px) {
+    #touchControls.on { display: block; }
+  }
+  #joyZone { position: absolute; left: 0; bottom: 0; width: 50%; height: 100%; pointer-events: auto; }
   #joyBase { position: absolute; width: 120px; height: 120px; border-radius: 50%;
     background: rgba(255,255,255,.08); border: 2px solid rgba(255,255,255,.3); display: none; }
   #joyThumb { position: absolute; width: 54px; height: 54px; border-radius: 50%;
     background: rgba(255,255,255,.25); border: 2px solid rgba(255,255,255,.5); display: none; }
   .tbtn { position: absolute; pointer-events: auto; border-radius: 50%; border: 2px solid rgba(255,255,255,.45);
     background: rgba(0,0,0,.45); color: #fff; font-weight: bold; display: flex; justify-content: center; align-items: center; }
-  .tbtn:active { background: rgba(255,255,255,.25); }
+  .tbtn:active, .tbtn.pressed { background: rgba(255,255,255,.25); }
   #btnAttack { right: 22px; bottom: 118px; width: 84px; height: 84px; font-size: 36px; }
   #btnFeed   { right: 122px; bottom: 40px; width: 72px; height: 72px; font-size: 28px; }
   #btnChop   { right: 26px;  bottom: 26px; width: 72px; height: 72px; font-size: 28px; }
   #btnShop   { right: 26px;  bottom: 212px; width: 58px; height: 58px; font-size: 22px; }
-  #shopPanel { max-width: 92vw; }
+  #shopPanel { max-width: 92vw; max-height: 86vh; overflow-y: auto; }
 </style>
 </head>
 <body>
+<div id="rotateHint">
+  <div class="rotIcon">📱↻</div>
+  <div><b>Gire o celular para o modo paisagem</b><br>o jogo ocupa a tela toda deitado 🌄</div>
+  <button id="btnFullscreen">⛶ Girar / Tela cheia</button>
+  <div style="font-size:13px;color:#999">Se não girar sozinho, ative a rotação automática do aparelho (Auto-rotate)</div>
+</div>
 <div id="gameContainer">
   <canvas id="game" width="960" height="640"></canvas>
 
@@ -273,9 +299,9 @@ let lastSentInput = '';
 
 // ------------------------- Entrada (teclado PC) -------------------------
 window.addEventListener('keydown', e => {
-  const k = e.key.toLowerCase();
-  if ((MODE === 'client' || MODE === 'host') && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k)) return; // já vai na entrada contínua
-  keys[k] = true;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;   // não intercepta atalhos do navegador
+  const k = (e.key || '').toLowerCase();
+  keys[k] = true;                                    // SEMPRE registra (host usa no modo 'client' também)
   if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
   if (!running) return;
   if (k === 'e') handleInteract();
@@ -283,7 +309,9 @@ window.addEventListener('keydown', e => {
   if (k === 'b') toggleShop();
   if (k === 'm') muted = !muted;
 });
-window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+window.addEventListener('keyup', e => { keys[(e.key || '').toLowerCase()] = false; });
+// Ao trocar de aba/janela, solta tudo para o personagem não "grudar" andando
+window.addEventListener('blur', () => { keys = {}; touchCtl.mx = touchCtl.my = 0; touchCtl.chop = false; });
 
 // ------------------------- Controles de toque (celular) -------------------------
 const touchCtl = { mx: 0, my: 0, chop: false };
@@ -327,17 +355,33 @@ const touchCtl = { mx: 0, my: 0, chop: false };
   }
   zone.addEventListener('touchend', joyEnd); zone.addEventListener('touchcancel', joyEnd);
 
-  // Botões de ação
-  function holdBtn(id, onDown, onUp){
+  // Botões de ação — usam Pointer Events (funcionam em celular E se alguém tocar a tela de um PC com touchscreen).
+  // setPointerCapture garante que o "soltar" seja detectado mesmo se o dedo escorregar para fora do botão.
+  function actionBtn(id, onDown, onUp){
     const el = $(id);
-    el.addEventListener('touchstart', e => { e.preventDefault(); onDown(); }, { passive:false });
-    if (onUp) { el.addEventListener('touchend', e => { e.preventDefault(); onUp(); }, { passive:false });
-                el.addEventListener('touchcancel', onUp); }
+    let activePtr = null;
+    el.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      try { el.setPointerCapture(e.pointerId); } catch(err){}
+      activePtr = e.pointerId;
+      el.classList.add('pressed');
+      onDown();
+    });
+    const up = e => {
+      if (activePtr !== null && e.pointerId !== activePtr) return;
+      activePtr = null;
+      el.classList.remove('pressed');
+      if (onUp) onUp();
+    };
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('lostpointercapture', up);
+    el.addEventListener('contextmenu', e => e.preventDefault());
   }
-  holdBtn('btnChop',   () => { touchCtl.chop = true;  handleInteract(); }, () => { touchCtl.chop = false; });
-  holdBtn('btnFeed',   () => feedFire());
-  holdBtn('btnAttack', () => playerAttack());
-  holdBtn('btnShop',   () => toggleShop());
+  actionBtn('btnChop',   () => { touchCtl.chop = true;  handleInteract(); }, () => { touchCtl.chop = false; });
+  actionBtn('btnFeed',   () => feedFire());
+  actionBtn('btnAttack', () => playerAttack());
+  actionBtn('btnShop',   () => toggleShop());
 })();
 
 // ------------------------- Utilidades -------------------------
@@ -368,7 +412,7 @@ function makePlayer(id, name, color, idx) {
     collectingIdx: -1, collectProgress: 0,
     hurtFlash: 0, walkPhase: 0,
     inp: { mx:0, my:0, chop:false, seq:0 },
-    cmd: { interact:false, attack:false, shop:false },
+    cmd: { interact:false, attack:false, shop:false, feed:false },
     connected: true, deathTimer: 0, downed: false,
   };
 }
@@ -501,6 +545,7 @@ function handleNetMsg(m) {
         if (m.act === 'interact') p.cmd.interact = true;
         if (m.act === 'attack')   p.cmd.attack = true;
         if (m.act === 'shop')     p.cmd.shop = true;
+        if (m.act === 'feed')     p.cmd.feed = true;
         if (m.act === 'buy_axe')  buyFor(p, 'axe');
         if (m.act === 'buy_spear')  buyFor(p, 'spear');
         if (m.act === 'buy_cloth')  buyFor(p, 'cloth');
@@ -658,15 +703,14 @@ function sendInput(forceAct) {
   if (forceAct) send({ t:'input', act: forceAct, seq: ++inputSeq });
 }
 function localControlVec() {
-  let mx = 0, my = 0;
-  if (isTouch) { mx = touchCtl.mx; my = touchCtl.my; }
-  else {
-    if (keys['w'] || keys['arrowup']) my -= 1;
-    if (keys['s'] || keys['arrowdown']) my += 1;
-    if (keys['a'] || keys['arrowleft']) mx -= 1;
-    if (keys['d'] || keys['arrowright']) mx += 1;
-    if (mx || my) { const l = Math.hypot(mx,my); mx/=l; my/=l; }
-  }
+  // Combina teclado (PC) e joystick de toque (celular) — funciona nos dois sem detecção frágil
+  let mx = touchCtl.mx, my = touchCtl.my;
+  if (keys['w'] || keys['arrowup']) my -= 1;
+  if (keys['s'] || keys['arrowdown']) my += 1;
+  if (keys['a'] || keys['arrowleft']) mx -= 1;
+  if (keys['d'] || keys['arrowright']) mx += 1;
+  const l = Math.hypot(mx, my);
+  if (l > 1) { mx /= l; my /= l; }
   return { mx, my };
 }
 
@@ -894,6 +938,7 @@ function update(dt) {
       if (p.cmd.interact) { p.cmd.interact = false; interactFor(p); }
       if (p.cmd.attack)   { p.cmd.attack = false; attackFor(p); }
       if (p.cmd.shop)     { p.cmd.shop = false; openShopFor(p); }
+      if (p.cmd.feed)     { p.cmd.feed = false; feedFire(p); }
     }
   }
 
