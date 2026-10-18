@@ -1,4 +1,2 @@
-node_modules/
-*.log
-*.tmp
-*.tmp.js
+__pycache__/
+*.pyc
