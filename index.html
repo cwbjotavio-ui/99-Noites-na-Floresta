@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chamas da Sobrevivência - Jogo 2D Top-Down</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; font-family: 'Segoe UI', Arial, sans-serif; }
+  #gameContainer { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
+  canvas { display: block; background: #2d4a2d; box-shadow: 0 0 40px rgba(0,0,0,.6); image-rendering: pixelated; }
+
+  /* ---------- HUD ---------- */
+  .hud { position: absolute; pointer-events: none; color: #fff; text-shadow: 1px 1px 3px #000; z-index: 10; }
+  #topLeft { top: 12px; left: 12px; width: 260px; }
+  #topRight { top: 12px; right: 12px; text-align: right; }
+  #bottomLeft { bottom: 12px; left: 12px; }
+  #bottomCenter { bottom: 12px; left: 50%; transform: translateX(-50%); text-align: center; }
+
+  .barWrap { background: rgba(0,0,0,.55); border: 2px solid rgba(255,255,255,.35); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
+  .barLabel { font-size: 12px; letter-spacing: 1px; margin-bottom: 3px; display: flex; justify-content: space-between; }
+  .barOuter { width: 230px; height: 16px; background: rgba(0,0,0,.6); border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,.2); }
+  .barInner { height: 100%; border-radius: 8px; transition: width .2s linear; }
+  #hpBar   { background: linear-gradient(90deg,#c0392b,#e74c3c); width: 100%; }
+  #fireBar { background: linear-gradient(90deg,#e67e22,#f39c12,#f1c40f); width: 100%; }
+
+  #dayInfo { font-size: 15px; line-height: 1.5; }
+  #dayIcon { font-size: 22px; }
+  #nightsSurvived { font-size: 13px; color: #ffd97a; }
+
+  #inventory { background: rgba(0,0,0,.55); border: 2px solid rgba(255,255,255,.3); border-radius: 10px; padding: 10px 14px; font-size: 14px; line-height: 1.7; min-width: 170px; }
+  #inventory h3 { font-size: 13px; margin-bottom: 4px; color: #ffd97a; letter-spacing: 1px; }
+
+  #hint { font-size: 13px; background: rgba(0,0,0,.5); padding: 6px 14px; border-radius: 20px; opacity: .9; }
+
+  /* ---------- Shop ---------- */
+  #shopPanel {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    background: rgba(20,16,10,.95); border: 3px solid #b8860b; border-radius: 14px;
+    padding: 22px 26px; color: #f5e6c8; width: 420px; z-index: 20; display: none;
+    box-shadow: 0 0 60px rgba(0,0,0,.8);
+  }
+  #shopPanel h2 { text-align: center; color: #ffd97a; margin-bottom: 4px; }
+  #shopPanel .sub { text-align: center; font-size: 12px; color: #b09a6a; margin-bottom: 14px; }
+  .shopItem { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.15); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
+  .shopItem .name { font-weight: bold; font-size: 14px; }
+  .shopItem .desc { font-size: 11px; color: #cbb88a; }
+  .shopItem button { pointer-events: auto; cursor: pointer; background: #b8860b; color: #fff; border: none;
+    border-radius: 6px; padding: 8px 14px; font-size: 13px; font-weight: bold; }
+  .shopItem button:hover:not(:disabled) { background: #d4a017; }
+  .shopItem button:disabled { background: #555; color: #999; cursor: not-allowed; }
+  #shopClose { display: block; margin: 8px auto 0; background: #7f1d1d; pointer-events: auto; cursor: pointer;
+    border: none; color: #fff; padding: 8px 22px; border-radius: 6px; font-size: 13px; }
+
+  /* ---------- Game Over / Start ---------- */
+  #overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,.78); z-index: 30;
+    display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; text-align: center;
+  }
+  #overlay h1 { font-size: 42px; color: #f39c12; margin-bottom: 12px; text-shadow: 0 0 20px rgba(243,156,18,.6); }
+  #overlay p { font-size: 16px; max-width: 620px; line-height: 1.7; margin-bottom: 8px; color: #ddd; }
+  #overlay .keys { font-size: 14px; color: #ffd97a; margin-bottom: 18px; line-height: 1.9; }
+  #overlay button { cursor: pointer; background: linear-gradient(90deg,#e67e22,#f39c12); border: none; color: #241503;
+    font-size: 20px; font-weight: bold; padding: 14px 44px; border-radius: 10px; box-shadow: 0 4px 20px rgba(243,156,18,.5); }
+  #overlay button:hover { transform: scale(1.05); }
+  kbd { background: #333; border: 1px solid #666; border-radius: 4px; padding: 2px 8px; font-family: monospace; }
+</style>
+</head>
+<body>
+<div id="gameContainer">
+  <canvas id="game" width="960" height="640"></canvas>
+
+  <!-- HUD -->
+  <div class="hud" id="topLeft">
+    <div class="barWrap">
+      <div class="barLabel"><span>❤️ VIDA</span><span id="hpText">100</span></div>
+      <div class="barOuter"><div class="barInner" id="hpBar"></div></div>
+    </div>
+    <div class="barWrap">
+      <div class="barLabel"><span>🔥 FOGUEIRA</span><span id="fireText">100</span></div>
+      <div class="barOuter"><div class="barInner" id="fireBar"></div></div>
+    </div>
+  </div>
+
+  <div class="hud" id="topRight">
+    <div id="dayInfo"><span id="dayIcon">☀️</span> <span id="phaseText">Dia</span> — <span id="phaseTimer">60s</span></div>
+    <div id="nightsSurvived">🌙 Noites sobrevividas: <b id="nightCount">0</b></div>
+  </div>
+
+  <div class="hud" id="bottomLeft">
+    <div id="inventory">
+      <h3>🎒 INVENTÁRIO</h3>
+      <div>🪵 Madeira: <b id="invWood">0</b></div>
+      <div>🟤 Couro: <b id="invLeather">0</b></div>
+      <div>🍖 Carne: <b id="invMeat">0</b></div>
+      <div style="margin-top:4px;font-size:12px;color:#aaa">⚔️ Dano: <span id="statDmg">10</span> · 🪓 Lenha: <span id="statAxe">1</span>x</div>
+    </div>
+  </div>
+
+  <div class="hud" id="bottomCenter"><div id="hint">WASD/Setas mover · E coletar/alimentar fogo · Espaço atacar · B loja (perto do mercador) · M som on/off</div></div>
+
+  <!-- Shop -->
+  <div id="shopPanel">
+    <h2>🏪 Mercador Ambulante</h2>
+    <div class="sub">Gaste Couro 🟤 e Carne 🍖 em melhorias</div>
+    <div class="shopItem">
+      <div><div class="name">🪓 Machado Melhorado <span id="axeLvl">(Nv.1)</span></div><div class="desc">+1 madeira por coleta de árvore</div></div>
+      <button id="buyAxe">🟤2 🍖1</button>
+    </div>
+    <div class="shopItem">
+      <div><div class="name">⚔️ Lança Afiada <span id="spearLvl">(Nv.1)</span></div><div class="desc">+8 de dano contra lobos</div></div>
+      <button id="buySpear">🟤1 🍖2</button>
+    </div>
+    <div class="shopItem">
+      <div><div class="name">🧥 Roupas de Frio <span id="clothLvl">(Nv.0)</span></div><div class="desc">Reduz o dano do frio longe do fogo</div></div>
+      <button id="buyCloth">🟤3 🍖1</button>
+    </div>
+    <button id="shopClose">Fechar [B]</button>
+  </div>
+
+  <!-- Overlay start/game over -->
+  <div id="overlay">
+    <h1 id="ovTitle">🔥 Chamas da Sobrevivência</h1>
+    <p id="ovText">Mantenha a fogueira acesa! Colete madeira durante o dia, alimente o fogo e sobreviva às noites infestadas de lobos. Se a fogueira apagar, o frio irá matá-lo.</p>
+    <div class="keys" id="ovKeys">
+      <kbd>W A S D</kbd> / <kbd>Setas</kbd> Mover &nbsp;·&nbsp; <kbd>E</kbd> Coletar / Alimentar &nbsp;·&nbsp; <kbd>Espaço</kbd> Atacar &nbsp;·&nbsp; <kbd>B</kbd> Loja<br>
+      Dia = 60s seguro para explorar · Noite = 60s com lobos e escuridão
+    </div>
+    <button id="startBtn">▶ JOGAR</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* =====================================================================
+   CHAMAS DA SOBREVIVÊNCIA — jogo 2D top-down com HTML5 Canvas puro
+   ===================================================================== */
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+// ------------------------- Constantes -------------------------
+const WORLD_W = 2400, WORLD_H = 1800;          // tamanho do mapa
+const DAY_LEN = 60, NIGHT_LEN = 60;            // duração de cada fase (segundos)
+const FIRE_MAX = 100, FIRE_DRAIN = 1.6;        // decaimento da fogueira por segundo
+const FIRE_LIGHT_RADIUS_MIN = 90, FIRE_LIGHT_RADIUS_MAX = 300;
+const WOOD_PER_FEED = 12;                      // intensidade restaurada por madeira
+const COLLECT_TIME_BASE = 1.2;                 // segundos para cortar uma árvore (base)
+const TREE_RESPAWN = 25;                       // segundos para árvore brotar de novo
+
+// ------------------------- Estado do jogo -------------------------
+let game = null;         // objeto principal do estado
+let running = false;     // loop ativo
+let lastTime = 0;
+let keys = {};
+let shopOpen = false;
+
+// ------------------------- Entrada -------------------------
+window.addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  keys[k] = true;
+  if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
+  if (!running) return;
+  if (k === 'e') handleInteract();
+  if (k === ' ') playerAttack();
+  if (k === 'b') toggleShop();
+  if (k === 'm') muted = !muted;
+});
+window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+// ------------------------- Utilidades -------------------------
+const rand = (a,b) => a + Math.random()*(b-a);
+const dist = (x1,y1,x2,y2) => Math.hypot(x2-x1, y2-y1);
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+
+function spawnTrees(n) {
+  const arr = [];
+  for (let i=0;i<n;i++){
+    let x,y,tries=0;
+    do {
+      x = rand(60, WORLD_W-60); y = rand(60, WORLD_H-60); tries++;
+    } while (dist(x,y,game.fire.x,game.fire.y) < 180 && tries < 40);
+    arr.push({ x, y, alive: true, respawn: 0, size: rand(0.85,1.25), sway: rand(0,Math.PI*2) });
+  }
+  return arr;
+}
+
+function newGame() {
+  game = {
+    player: {
+      x: WORLD_W/2 + 90, y: WORLD_H/2, r: 14, speed: 175, hp: 100, maxHp: 100,
+      dir: 0,              // ângulo que o jogador olha
+      attackCd: 0, swing: 0,
+      inv: { wood: 0, leather: 0, meat: 0 },
+      upgrades: { axe: 1, spear: 1, cloth: 0 },
+      collecting: null, collectProgress: 0,
+      hurtFlash: 0, walkPhase: 0,
+    },
+    fire: { x: WORLD_W/2, y: WORLD_H/2, intensity: FIRE_MAX },
+    trees: [], wolves: [], drops: [], particles: [], floaters: [],
+    time: 0, phase: 'day', phaseTimer: DAY_LEN, night: 0,
+    camera: { x: 0, y: 0 },
+    merchant: { x: WORLD_W/2 + 260, y: WORLD_H/2 - 180 },
+    gameOverReason: '',
+    spawnAccum: 0,
+  };
+  game.trees = spawnTrees(42);
+}
+
+
+// ------------------------- Sons (WebAudio, sem arquivos) -------------------------
+let audioCtx = null, muted = false;
+function beep(freq, dur, type, vol) {
+  if (muted) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type || 'square'; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol || .08, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001, audioCtx.currentTime + dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + dur);
+  } catch(e){}
+}
+const SFX = {
+  chop:   () => beep(160, .12, 'triangle', .12),
+  feed:   () => { beep(520, .15, 'sawtooth', .06); beep(700, .2, 'sawtooth', .05); },
+  hit:    () => beep(90, .15, 'square', .14),
+  hurt:   () => beep(120, .25, 'sawtooth', .12),
+  pickup: () => beep(880, .1, 'sine', .08),
+  buy:    () => { beep(660, .08, 'sine', .1); setTimeout(()=>beep(990,.12,'sine',.1),80); },
+  nightfall: () => beep(220, .6, 'sawtooth', .07),
+  dawn:   () => { beep(440,.2,'sine',.08); setTimeout(()=>beep(550,.2,'sine',.08),150); setTimeout(()=>beep(660,.3,'sine',.08),300); },
+};
+
+// ------------------------- Interações -------------------------
+function addFloater(text, x, y, color) {
+  game.floaters.push({ text, x, y, life: 1.2, color: color || '#fff' });
+}
+
+function handleInteract() {
+  const p = game.player;
+  // 1) Perto da fogueira → alimentar com madeira
+  const dFire = dist(p.x, p.y, game.fire.x, game.fire.y);
+  if (dFire < 60) {
+    if (p.inv.wood > 0 && game.fire.intensity < FIRE_MAX) {
+      const use = Math.min(p.inv.wood, 3);
+      p.inv.wood -= use;
+      game.fire.intensity = clamp(game.fire.intensity + use * WOOD_PER_FEED, 0, FIRE_MAX);
+      SFX.feed(); addFloater('+' + (use*WOOD_PER_FEED) + ' 🔥', game.fire.x, game.fire.y - 40, '#f1c40f');
+      for (let i=0;i<10;i++) spawnParticle(game.fire.x, game.fire.y - 10, '#f39c12', rand(30,80));
+      updateHUD();
+    } else if (p.inv.wood === 0) {
+      addFloater('Sem madeira!', p.x, p.y - 30, '#e74c3c');
+    }
+    return;
+  }
+  // 2) Perto de árvore viva → iniciar coleta (segurar E continua; pressionar inicia)
+  const tree = nearestTree(p.x, p.y, 55);
+  if (tree && tree.alive) {
+    if (p.collecting !== tree) { p.collecting = tree; p.collectProgress = 0; }
+  }
+}
+
+function nearestTree(x, y, range) {
+  let best = null, bd = range;
+  for (const t of game.trees) {
+    if (!t.alive) continue;
+    const d = dist(x, y, t.x, t.y);
+    if (d < bd) { bd = d; best = t; }
+  }
+  return best;
+}
+
+function playerAttack() {
+  const p = game.player;
+  if (p.attackCd > 0) return;
+  const dmg = 10 + (p.upgrades.spear - 1) * 8;
+  p.attackCd = 0.45; p.swing = 0.25;
+  const reach = 46;
+  const ax = p.x + Math.cos(p.dir) * reach, ay = p.y + Math.sin(p.dir) * reach;
+  for (const w of game.wolves) {
+    if (w.dead) continue;
+    if (dist(ax, ay, w.x, w.y) < w.r + 26) {
+      w.hp -= dmg;
+      w.knock = { x: Math.cos(p.dir) * 180, y: Math.sin(p.dir) * 180, t: 0.18 };
+      w.target = 'player';
+      SFX.hit(); addFloater('-' + dmg, w.x, w.y - 24, '#ff6b6b');
+      for (let i=0;i<6;i++) spawnParticle(w.x, w.y, '#c0392b', rand(20,60));
+      if (w.hp <= 0) killWolf(w);
+    }
+  }
+}
+
+function killWolf(w) {
+  w.dead = true;
+  // Drop de couro e carne
+  game.drops.push({ x: w.x + rand(-12,12), y: w.y + rand(-12,12), type: 'leather', bob: rand(0,6) });
+  game.drops.push({ x: w.x + rand(-12,12), y: w.y + rand(-12,12), type: 'meat', bob: rand(0,6) });
+  addFloater('🐺 abatido!', w.x, w.y - 30, '#ffd97a');
+}
+
+function spawnParticle(x, y, color, speed) {
+  const a = rand(0, Math.PI*2);
+  game.particles.push({ x, y, vx: Math.cos(a)*speed, vy: Math.sin(a)*speed - 40, life: rand(.4,.9), color, size: rand(2,4) });
+}
+
+// ------------------------- Lobos -------------------------
+function spawnWolf() {
+  // nasce nas bordas visíveis além da luz, direcionado ao centro/jogador
+  const side = Math.floor(rand(0,4));
+  let x, y;
+  if (side===0){ x = game.camera.x - 60; y = rand(game.camera.y, game.camera.y+H); }
+  else if (side===1){ x = game.camera.x + W + 60; y = rand(game.camera.y, game.camera.y+H); }
+  else if (side===2){ x = rand(game.camera.x, game.camera.x+W); y = game.camera.y - 60; }
+  else { x = rand(game.camera.x, game.camera.x+W); y = game.camera.y + H + 60; }
+  x = clamp(x, 20, WORLD_W-20); y = clamp(y, 20, WORLD_H-20);
+  const baseHp = 30 + game.night * 6;
+  game.wolves.push({ x, y, r: 15, hp: baseHp, maxHp: baseHp, speed: rand(105, 135) + game.night*4,
+    dmgCd: 0, dead: false, target: null, knock: null, howl: rand(0,3), hitFlash: 0 });
+}
+
+// ------------------------- Loja -------------------------
+const shopEl = document.getElementById('shopPanel');
+function toggleShop() {
+  const p = game.player;
+  if (!shopOpen && dist(p.x, p.y, game.merchant.x, game.merchant.y) > 80) {
+    addFloater('Vá até o Mercador (B)!', p.x, p.y - 30, '#ffd97a');
+    return;
+  }
+  shopOpen = !shopOpen;
+  shopEl.style.display = shopOpen ? 'block' : 'none';
+  refreshShop();
+}
+document.getElementById('shopClose').onclick = () => toggleShop();
+
+const COSTS = { axe: { leather: 2, meat: 1 }, spear: { leather: 1, meat: 2 }, cloth: { leather: 3, meat: 1 } };
+function canAfford(item) {
+  const c = COSTS[item], inv = game.player.inv;
+  return inv.leather >= c.leather && inv.meat >= c.meat;
+}
+function buy(item) {
+  if (!canAfford(item)) return;
+  const c = COSTS[item], p = game.player;
+  p.inv.leather -= c.leather; p.inv.meat -= c.meat;
+  if (item==='axe') p.upgrades.axe++;
+  if (item==='spear') p.upgrades.spear++;
+  if (item==='cloth') p.upgrades.cloth = Math.min(3, p.upgrades.cloth+1);
+  SFX.buy(); addFloater('✔ Compra realizada!', p.x, p.y - 30, '#2ecc71');
+  refreshShop(); updateHUD();
+}
+document.getElementById('buyAxe').onclick = () => buy('axe');
+document.getElementById('buySpear').onclick = () => buy('spear');
+document.getElementById('buyCloth').onclick = () => buy('cloth');
+
+function refreshShop() {
+  if (!game) return;
+  const u = game.player.upgrades;
+  document.getElementById('axeLvl').textContent = '(Nv.' + u.axe + (u.axe>=4?' MÁX':'') + ')';
+  document.getElementById('spearLvl').textContent = '(Nv.' + u.spear + (u.spear>=4?' MÁX':'') + ')';
+  document.getElementById('clothLvl').textContent = '(Nv.' + u.cloth + '/3)';
+  document.getElementById('buyAxe').disabled = !canAfford('axe') || u.axe >= 4;
+  document.getElementById('buySpear').disabled = !canAfford('spear') || u.spear >= 4;
+  document.getElementById('buyCloth').disabled = !canAfford('cloth') || u.cloth >= 3;
+}
+
+// ------------------------- HUD -------------------------
+const $ = id => document.getElementById(id);
+function updateHUD() {
+  const p = game.player, f = game.fire;
+  $('hpBar').style.width = (p.hp/p.maxHp*100) + '%';
+  $('hpText').textContent = Math.ceil(p.hp);
+  $('fireBar').style.width = (f.intensity/FIRE_MAX*100) + '%';
+  $('fireText').textContent = Math.ceil(f.intensity);
+  $('invWood').textContent = p.inv.wood;
+  $('invLeather').textContent = p.inv.leather;
+  $('invMeat').textContent = p.inv.meat;
+  $('statDmg').textContent = 10 + (p.upgrades.spear-1)*8;
+  $('statAxe').textContent = p.upgrades.axe;
+  $('dayIcon').textContent = game.phase==='day' ? '☀️' : '🌙';
+  $('phaseText').textContent = game.phase==='day' ? 'Dia' : 'Noite';
+  $('phaseTimer').textContent = Math.ceil(game.phaseTimer) + 's';
+  $('nightCount').textContent = game.night;
+  if (shopOpen) refreshShop();
+}
+
+// ------------------------- Update -------------------------
+function update(dt) {
+  const p = game.player, f = game.fire;
+
+  game.time += dt;
+
+  // ----- Ciclo dia/noite -----
+  game.phaseTimer -= dt;
+  if (game.phaseTimer <= 0) {
+    if (game.phase === 'day') {
+      game.phase = 'night'; game.phaseTimer = NIGHT_LEN;
+      SFX.nightfall(); addFloater('🌙 A noite chegou... os lobos vêm!', p.x, p.y - 40, '#a29bfe');
+    } else {
+      game.phase = 'day'; game.phaseTimer = DAY_LEN; game.night++;
+      // amanhecer: lobos recuam e morrem lentamente ao sol
+      SFX.dawn(); addFloater('☀️ O sol nasceu! Você sobreviveu à noite ' + game.night, p.x, p.y - 40, '#ffd97a');
+      for (const w of game.wolves) if (!w.dead) w.burning = true;
+    }
+  }
+
+  // ----- Spawn de lobos à noite -----
+  if (game.phase === 'night') {
+    game.spawnAccum += dt;
+    const interval = Math.max(2.5, 7 - game.night * 0.7);
+    const maxWolves = 3 + game.night * 2;
+    const alive = game.wolves.filter(w=>!w.dead).length;
+    if (game.spawnAccum > interval && alive < maxWolves) { game.spawnAccum = 0; spawnWolf(); }
+  }
+
+  // ----- Fogueira -----
+  f.intensity = clamp(f.intensity - FIRE_DRAIN * dt, 0, FIRE_MAX);
+  const lightRadius = FIRE_LIGHT_RADIUS_MIN + (FIRE_LIGHT_RADIUS_MAX - FIRE_LIGHT_RADIUS_MIN) * (f.intensity / FIRE_MAX);
+
+  // ----- Movimento do jogador -----
+  let mx = 0, my = 0;
+  if (keys['w'] || keys['arrowup']) my -= 1;
+  if (keys['s'] || keys['arrowdown']) my += 1;
+  if (keys['a'] || keys['arrowleft']) mx -= 1;
+  if (keys['d'] || keys['arrowright']) mx += 1;
+  if (mx || my) {
+    const l = Math.hypot(mx,my);
+    p.x = clamp(p.x + mx/l * p.speed * dt, 20, WORLD_W-20);
+    p.y = clamp(p.y + my/l * p.speed * dt, 20, WORLD_H-20);
+    p.dir = Math.atan2(my, mx);
+    p.walkPhase += dt * 10;
+    // mover-se cancela coleta se afastar
+    if (p.collecting && dist(p.x,p.y,p.collecting.x,p.collecting.y) > 60) { p.collecting = null; p.collectProgress = 0; }
+  }
+  p.attackCd = Math.max(0, p.attackCd - dt);
+  p.swing = Math.max(0, p.swing - dt);
+  p.hurtFlash = Math.max(0, p.hurtFlash - dt);
+
+  // ----- Coleta contínua (segurar E perto da árvore) -----
+  if (p.collecting) {
+    const t = p.collecting;
+    if (!t.alive || dist(p.x,p.y,t.x,t.y) > 60 || !(keys['e'])) {
+      p.collecting = null; p.collectProgress = 0;
+    } else {
+      const speed = p.upgrades.axe; // machado melhora velocidade
+      p.collectProgress += dt * speed / COLLECT_TIME_BASE;
+      if (Math.random() < dt*8) spawnParticle(t.x + rand(-8,8), t.y - rand(0,20), '#8d6e63', rand(10,30));
+      if (p.collectProgress >= 1) {
+        const gain = p.upgrades.axe; // madeira extra por nível
+        p.inv.wood += gain;
+        t.alive = false; t.respawn = TREE_RESPAWN;
+        p.collecting = null; p.collectProgress = 0;
+        SFX.chop(); addFloater('+' + gain + ' 🪵', t.x, t.y - 30, '#a3e635');
+        for (let i=0;i<8;i++) spawnParticle(t.x, t.y, '#6b8f3a', rand(20,50));
+      }
+    }
+  }
+
+  // ----- Respawn de árvores -----
+  for (const t of game.trees) {
+    if (!t.alive) { t.respawn -= dt; if (t.respawn <= 0) { t.alive = true; } }
+  }
+
+  // ----- Drops (auto-coleta ao passar por cima) -----
+  for (const d of game.drops) {
+    if (d.taken) continue;
+    d.bob += dt*4;
+    if (dist(p.x,p.y,d.x,d.y) < p.r + 14) {
+      d.taken = true;
+      if (d.type==='leather'){ p.inv.leather++; SFX.pickup(); addFloater('+1 🟤 Couro', d.x, d.y-16, '#d19a66'); }
+      if (d.type==='meat'){ p.inv.meat++; SFX.pickup(); addFloater('+1 🍖 Carne', d.x, d.y-16, '#fda4af'); }
+    }
+  }
+  game.drops = game.drops.filter(d => !d.taken);
+
+  // ----- Lobos: IA -----
+  for (const w of game.wolves) {
+    if (w.dead) continue;
+    if (w.burning) { // queima ao amanhecer
+      w.hp -= 25*dt;
+      if (Math.random()<dt*10) spawnParticle(w.x, w.y, '#ff9f43', rand(10,40));
+      if (w.hp <= 0) { killWolf(w); continue; }
+    }
+    w.hitFlash = Math.max(0, (w.hitFlash||0) - dt);
+    w.dmgCd = Math.max(0, w.dmgCd - dt);
+
+    // knockback
+    if (w.knock && w.knock.t > 0) {
+      w.knock.t -= dt;
+      w.x += w.knock.x*dt; w.y += w.knock.y*dt;
+    } else {
+      w.knock = null;
+      // alvo: jogador próximo, senão ataca a fogueira
+      const dP = dist(w.x,w.y,p.x,p.y);
+      const dF = dist(w.x,w.y,f.x,f.y);
+      let tx = p.x, ty = p.y;
+      if (dF < dP * 0.8 && f.intensity > 0) { tx = f.x; ty = f.y; w.attackingFire = true; }
+      else w.attackingFire = false;
+
+      const ang = Math.atan2(ty - w.y, tx - w.x);
+      w.x = clamp(w.x + Math.cos(ang)*w.speed*dt, 10, WORLD_W-10);
+      w.y = clamp(w.y + Math.sin(ang)*w.speed*dt, 10, WORLD_H-10);
+
+      // dano ao jogador
+      if (!w.attackingFire && dP < w.r + p.r + 4 && w.dmgCd <= 0) {
+        const dmg = 8 + game.night;
+        p.hp -= dmg; p.hurtFlash = .3; w.dmgCd = 0.9;
+        SFX.hurt(); addFloater('-' + dmg, p.x, p.y - 30, '#ff6b6b');
+      }
+      // dano à fogueira (lobos "urram" e diminuem a chama)
+      if (w.attackingFire && dF < w.r + 34 && w.dmgCd <= 0) {
+        f.intensity = clamp(f.intensity - 6, 0, FIRE_MAX);
+        w.dmgCd = 1.2;
+        addFloater('-6 🔥', f.x, f.y - 46, '#ff9f43');
+      }
+    }
+  }
+  game.wolves = game.wolves.filter(w => !w.dead); // remove corpos que já droparam loot
+
+  // ----- Frio: se fogueira apagada ou jogador longe demais da luz à noite -----
+  let coldDmg = 0;
+  if (f.intensity <= 0) {
+    coldDmg = 18; // fogueira apagada = congelamento rápido
+  } else if (game.phase === 'night') {
+    const dFire = dist(p.x,p.y,f.x,f.y);
+    if (dFire > lightRadius * 1.05) coldDmg = 6;
+  }
+  if (coldDmg > 0) {
+    const reduce = p.upgrades.cloth * 0.22; // roupas cortam até 66%
+    p.hp -= coldDmg * (1 - reduce) * dt;
+    if (Math.random() < dt*3) spawnParticle(p.x+rand(-10,10), p.y-14, '#aee9ff', rand(5,15));
+  } else if (game.phase === 'day' || dist(p.x,p.y,f.x,f.y) < lightRadius) {
+    // regeneração lenta perto do fogo
+    if (f.intensity > 10 && dist(p.x,p.y,f.x,f.y) < 90) p.hp = Math.min(p.maxHp, p.hp + 2.5*dt);
+  }
+
+  // ----- Partículas e flutuadores -----
+  for (const pt of game.particles) { pt.life -= dt; pt.x += pt.vx*dt; pt.y += pt.vy*dt; pt.vy += 60*dt; }
+  game.particles = game.particles.filter(pt => pt.life > 0);
+  for (const fl of game.floaters) { fl.life -= dt; fl.y -= 28*dt; }
+  game.floaters = game.floaters.filter(fl => fl.life > 0);
+  // partículas ambiente da fogueira
+  if (f.intensity > 0 && Math.random() < dt * 20) spawnParticle(f.x + rand(-8,8), f.y - 6, Math.random()<.5?'#f39c12':'#ff6b35', rand(15,45));
+
+  // ----- Câmera segue o jogador -----
+  game.camera.x = clamp(p.x - W/2, 0, WORLD_W - W);
+  game.camera.y = clamp(p.y - H/2, 0, WORLD_H - H);
+
+  // ----- Game over -----
+  if (p.hp <= 0) {
+    p.hp = 0;
+    endGame(f.intensity <= 0 ? 'Você congelou na escuridão. A fogueira se apagou...' : 'Os lobos derrubaram você...');
+  }
+
+  updateHUD();
+}
+
+function endGame(reason) {
+  running = false;
+  shopOpen = false; shopEl.style.display='none';
+  const ov = $('overlay');
+  $('ovTitle').textContent = '💀 Fim de Jogo';
+  $('ovText').innerHTML = reason + '<br><br>🌙 <b>Noites sobrevividas: ' + game.night + '</b>';
+  $('ovKeys').style.display = 'none';
+  $('startBtn').textContent = '↻ JOGAR NOVAMENTE';
+  ov.style.display = 'flex';
+}
+
+// ------------------------- Desenho -------------------------
+function drawGround(camx, camy) {
+  // grama com padrão sutil
+  ctx.fillStyle = game.phase==='day' ? '#3f6b35' : '#22351f';
+  ctx.fillRect(0,0,W,H);
+  ctx.save();
+  ctx.globalAlpha = .25;
+  const cell = 80;
+  const sx = Math.floor(camx/cell)*cell, sy = Math.floor(camy/cell)*cell;
+  for (let gx = sx; gx < camx+W+cell; gx += cell) {
+    for (let gy = sy; gy < camy+H+cell; gy += cell) {
+      const n = ((gx*73856093) ^ (gy*19349663)) % 100;
+      ctx.fillStyle = n < 33 ? (game.phase==='day'?'#4a7c3d':'#263d22') : (game.phase==='day'?'#3a6230':'#1e2f1b');
+      ctx.fillRect(gx-camx, gy-camy, cell, cell);
+      if (n < 12) { // touceiras
+        ctx.fillStyle = game.phase==='day' ? '#5b8f4a' : '#2c4426';
+        ctx.fillRect(gx-camx+20, gy-camy+30, 6, 8);
+        ctx.fillRect(gx-camx+50, gy-camy+55, 5, 7);
+      }
+    }
+  }
+  ctx.restore();
+  // bordas do mundo
+  ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = 8;
+  ctx.strokeRect(-camx, -camy, WORLD_W, WORLD_H);
+}
+
+function drawTree(t, camx, camy) {
+  const x = t.x - camx, y = t.y - camy;
+  if (x < -60 || x > W+60 || y < -80 || y > H+60) return;
+  if (!t.alive) { // toco
+    ctx.fillStyle = '#6d4c41';
+    ctx.beginPath(); ctx.ellipse(x, y, 10*t.size, 6*t.size, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#8d6e63';
+    ctx.beginPath(); ctx.ellipse(x, y-3, 8*t.size, 5*t.size, 0, 0, Math.PI*2); ctx.fill();
+    return;
+  }
+  const sway = Math.sin(game.time*1.5 + t.sway) * 2;
+  // sombra
+  ctx.fillStyle = 'rgba(0,0,0,.3)';
+  ctx.beginPath(); ctx.ellipse(x, y+6, 20*t.size, 8*t.size, 0, 0, Math.PI*2); ctx.fill();
+  // tronco
+  ctx.fillStyle = '#7a5230';
+  ctx.fillRect(x-4, y-24, 8, 26);
+  // copa (3 círculos sobrepostos)
+  const s = t.size;
+  ctx.fillStyle = game.phase==='day' ? '#2e7d32' : '#1d4a20';
+  ctx.beginPath(); ctx.arc(x+sway, y-40*s, 20*s, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = game.phase==='day' ? '#388e3c' : '#235a26';
+  ctx.beginPath(); ctx.arc(x-13*s+sway, y-30*s, 15*s, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+13*s+sway, y-30*s, 15*s, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = game.phase==='day' ? '#43a047' : '#2a6b2e';
+  ctx.beginPath(); ctx.arc(x+sway, y-50*s, 12*s, 0, Math.PI*2); ctx.fill();
+}
+
+function drawFire(camx, camy) {
+  const f = game.fire, x = f.x - camx, y = f.y - camy;
+  const inten = f.intensity / FIRE_MAX;
+  // pedra circular
+  ctx.fillStyle = '#555';
+  ctx.beginPath(); ctx.ellipse(x, y+4, 34, 16, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#6d6d6d';
+  for (let i=0;i<8;i++){
+    const a = i/8*Math.PI*2;
+    ctx.beginPath(); ctx.arc(x+Math.cos(a)*30, y+4+Math.sin(a)*13, 6, 0, Math.PI*2); ctx.fill();
+  }
+  // lenhas
+  ctx.strokeStyle = '#5d4037'; ctx.lineWidth = 6; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(x-14,y+2); ctx.lineTo(x+14,y-6); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x-12,y-6); ctx.lineTo(x+12,y+2); ctx.stroke();
+  if (inten > 0.02) {
+    // chamas animadas
+    const flameH = 20 + inten*45;
+    const flick = Math.sin(game.time*13)*2 + Math.sin(game.time*7)*2;
+    const g = ctx.createRadialGradient(x, y-10, 2, x, y-10, flameH+10);
+    g.addColorStop(0,'rgba(255,240,150,.95)');
+    g.addColorStop(.4,'rgba(255,140,20,.85)');
+    g.addColorStop(1,'rgba(200,40,0,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(x-16*inten-4, y);
+    ctx.quadraticCurveTo(x-10+flick, y-flameH*.6, x-2+flick, y-flameH);
+    ctx.quadraticCurveTo(x+8+flick, y-flameH*.5, x+16*inten+4, y);
+    ctx.closePath(); ctx.fill();
+    // núcleo
+    ctx.fillStyle = 'rgba(255,230,120,.9)';
+    ctx.beginPath(); ctx.ellipse(x+flick*.4, y-flameH*.3, 6*inten+2, flameH*.3, 0, 0, Math.PI*2); ctx.fill();
+  } else {
+    // fumacinha
+    ctx.fillStyle = 'rgba(120,120,120,.4)';
+    ctx.beginPath(); ctx.arc(x, y-14-Math.sin(game.time*3)*4, 5, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+function drawMerchant(camx, camy) {
+  const m = game.merchant, x = m.x - camx, y = m.y - camy;
+  if (x<-60||x>W+60||y<-80||y>H+60) return;
+  ctx.fillStyle='rgba(0,0,0,.3)';
+  ctx.beginPath(); ctx.ellipse(x,y+10,16,6,0,0,Math.PI*2); ctx.fill();
+  // banca
+  ctx.fillStyle='#8d5524'; ctx.fillRect(x-26, y-18, 52, 28);
+  ctx.fillStyle='#a0522d'; ctx.fillRect(x-26, y-24, 52, 8);
+  // toldo listrado
+  for(let i=0;i<6;i++){ ctx.fillStyle = i%2? '#e74c3c':'#fff'; ctx.fillRect(x-27+i*9, y-34, 9, 10); }
+  // vendedor
+  ctx.fillStyle='#f1c27d'; ctx.beginPath(); ctx.arc(x, y-8, 7, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle='#2c3e50'; ctx.fillRect(x-6, y-2, 12, 12);
+  ctx.fillStyle='#b8860b'; ctx.fillRect(x-8, y-16, 16, 4); // chapéu
+  // indicador "B"
+  if (dist(game.player.x, game.player.y, m.x, m.y) < 80) {
+    ctx.fillStyle = '#ffd97a'; ctx.font = 'bold 13px Arial'; ctx.textAlign='center';
+    ctx.fillText('[B] Loja', x, y-42 + Math.sin(game.time*4)*2);
+  }
+}
+
+function drawWolf(w, camx, camy) {
+  const x = w.x - camx, y = w.y - camy;
+  if (x<-50||x>W+50||y<-50||y>H+50) return;
+  ctx.fillStyle='rgba(0,0,0,.35)';
+  ctx.beginPath(); ctx.ellipse(x, y+8, 16, 6, 0, 0, Math.PI*2); ctx.fill();
+  const facing = w.x < game.player.x ? 1 : -1;
+  ctx.save(); ctx.translate(x,y); ctx.scale(facing,1);
+  const body = w.hitFlash>0 ? '#ff8a8a' : (w.burning ? '#8a6d5a' : '#5c6370');
+  // corpo
+  ctx.fillStyle = body;
+  ctx.beginPath(); ctx.ellipse(0, 0, 17, 10, 0, 0, Math.PI*2); ctx.fill();
+  // cabeça
+  ctx.beginPath(); ctx.arc(14, -6, 8, 0, Math.PI*2); ctx.fill();
+  // orelhas
+  ctx.beginPath(); ctx.moveTo(10,-12); ctx.lineTo(13,-19); ctx.lineTo(16,-12); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(16,-12); ctx.lineTo(19,-18); ctx.lineTo(21,-11); ctx.fill();
+  // cauda
+  ctx.strokeStyle = body; ctx.lineWidth = 5; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-16,-2); ctx.quadraticCurveTo(-24,-8,-22,-14); ctx.stroke();
+  // patas
+  ctx.fillStyle = '#3f444e';
+  ctx.fillRect(-10, 6, 4, 7); ctx.fillRect(6, 6, 4, 7);
+  // olhos brilhando no escuro
+  ctx.fillStyle = game.phase==='night' ? '#ffe066' : '#222';
+  ctx.beginPath(); ctx.arc(17,-7,2,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+  // barra de vida
+  if (w.hp < w.maxHp) {
+    ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(x-16, y-26, 32, 5);
+    ctx.fillStyle='#e74c3c'; ctx.fillRect(x-16, y-26, 32*(w.hp/w.maxHp), 5);
+  }
+}
+
+function drawPlayer(camx, camy) {
+  const p = game.player, x = p.x - camx, y = p.y - camy;
+  const bob = Math.sin(p.walkPhase)*2;
+  ctx.fillStyle='rgba(0,0,0,.35)';
+  ctx.beginPath(); ctx.ellipse(x, y+10, 12, 5, 0, 0, Math.PI*2); ctx.fill();
+  // pernas
+  ctx.fillStyle='#4e342e';
+  ctx.fillRect(x-7, y+2, 5, 9+bob); ctx.fillRect(x+2, y+2, 5, 9-bob);
+  // corpo (jaqueta)
+  ctx.fillStyle = p.hurtFlash>0 ? '#ff6b6b' : (p.upgrades.cloth>0 ? '#5d7fa8' : '#8e5a3b');
+  ctx.fillRect(x-9, y-8+bob*0.3, 18, 12);
+  // cabeça
+  ctx.fillStyle='#f1c27d';
+  ctx.beginPath(); ctx.arc(x, y-14+bob*0.3, 8, 0, Math.PI*2); ctx.fill();
+  // cabelo
+  ctx.fillStyle='#3e2723';
+  ctx.beginPath(); ctx.arc(x, y-16+bob*0.3, 8, Math.PI, 0); ctx.fill();
+  // arma na direção que olha
+  const ax = Math.cos(p.dir), ay = Math.sin(p.dir);
+  if (p.swing > 0) {
+    const sw = (0.25 - p.swing)/0.25 * Math.PI*0.8 - Math.PI*0.4;
+    ctx.save(); ctx.translate(x, y-2); ctx.rotate(p.dir + sw);
+    ctx.strokeStyle='#b0bec5'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(6,0); ctx.lineTo(34,0); ctx.stroke();
+    ctx.fillStyle='#eceff1';
+    ctx.beginPath(); ctx.moveTo(34,0); ctx.lineTo(28,-4); ctx.lineTo(28,4); ctx.fill();
+    ctx.restore();
+  } else {
+    ctx.strokeStyle='#8d6e63'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(x+ax*8, y-2+ay*8); ctx.lineTo(x+ax*22, y-2+ay*22); ctx.stroke();
+  }
+  // progresso de coleta
+  if (p.collecting && p.collectProgress > 0) {
+    ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(x-16, y-34, 32, 6);
+    ctx.fillStyle='#a3e635'; ctx.fillRect(x-16, y-34, 32*p.collectProgress, 6);
+  }
+}
+
+function drawDrop(d, camx, camy) {
+  const x = d.x - camx, y = d.y - camy + Math.sin(d.bob)*3;
+  if (x<-30||x>W+30||y<-30||y>H+30) return;
+  ctx.fillStyle='rgba(0,0,0,.3)';
+  ctx.beginPath(); ctx.ellipse(d.x-camx, d.y-camy+8, 9, 4, 0,0,Math.PI*2); ctx.fill();
+  if (d.type==='leather') {
+    ctx.fillStyle='#a1663a';
+    ctx.beginPath(); ctx.ellipse(x, y, 9, 7, .4, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#7c4a24'; ctx.lineWidth=1.5; ctx.stroke();
+  } else {
+    ctx.fillStyle='#ef7d8b';
+    ctx.beginPath(); ctx.ellipse(x, y, 8, 6, -.3, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff5f5'; ctx.fillRect(x-2, y-7, 3, 5); // osso
+  }
+}
+
+function drawNightOverlay(lightRadius) {
+  if (game.phase === 'day') {
+    // leve vinheta dourada de fim de tarde quando restam poucos segundos
+    if (game.phaseTimer < 8) {
+      ctx.fillStyle = 'rgba(255,120,0,' + (0.12*(1-game.phaseTimer/8)) + ')';
+      ctx.fillRect(0,0,W,H);
+    }
+    return;
+  }
+  const f = game.fire;
+  const fx = f.x - game.camera.x, fy = f.y - game.camera.y;
+  // escuro total
+  ctx.save();
+  ctx.fillStyle = 'rgba(5,8,25,.88)';
+  ctx.fillRect(0,0,W,H);
+  // recorte da luz da fogueira (gradiente radial transparente)
+  ctx.globalCompositeOperation = 'destination-out';
+  const flick = Math.sin(game.time*11)*6;
+  const r = lightRadius + flick;
+  const g = ctx.createRadialGradient(fx, fy, r*0.15, fx, fy, r);
+  g.addColorStop(0,'rgba(0,0,0,1)');
+  g.addColorStop(.7,'rgba(0,0,0,.85)');
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(fx, fy, r, 0, Math.PI*2); ctx.fill();
+  // pequena aura pessoal do jogador (quase inútil no escuro)
+  const px = game.player.x - game.camera.x, py = game.player.y - game.camera.y;
+  const pg = ctx.createRadialGradient(px,py,4,px,py,55);
+  pg.addColorStop(0,'rgba(0,0,0,.55)'); pg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = pg;
+  ctx.beginPath(); ctx.arc(px,py,55,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+  // tom alaranjado quente dentro da luz
+  ctx.save();
+  ctx.globalCompositeOperation = 'overlay';
+  const og = ctx.createRadialGradient(fx,fy,0,fx,fy,r);
+  og.addColorStop(0,'rgba(255,150,50,.35)'); og.addColorStop(1,'rgba(255,150,50,0)');
+  ctx.fillStyle = og;
+  ctx.beginPath(); ctx.arc(fx,fy,r,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function draw() {
+  const camx = game.camera.x, camy = game.camera.y;
+  drawGround(camx, camy);
+
+  // ordena entidades por Y para profundidade
+  const ents = [];
+  for (const t of game.trees) ents.push({y: t.y, fn: ()=>drawTree(t,camx,camy)});
+  ents.push({y: game.fire.y, fn: ()=>drawFire(camx,camy)});
+  ents.push({y: game.merchant.y, fn: ()=>drawMerchant(camx,camy)});
+  for (const d of game.drops) ents.push({y: d.y, fn: ()=>drawDrop(d,camx,camy)});
+  for (const w of game.wolves) ents.push({y: w.y, fn: ()=>drawWolf(w,camx,camy)});
+  ents.push({y: game.player.y, fn: ()=>drawPlayer(camx,camy)});
+  ents.sort((a,b)=>a.y-b.y).forEach(e=>e.fn());
+
+  // partículas
+  for (const pt of game.particles) {
+    ctx.globalAlpha = clamp(pt.life*2,0,1);
+    ctx.fillStyle = pt.color;
+    ctx.fillRect(pt.x-camx, pt.y-camy, pt.size, pt.size);
+  }
+  ctx.globalAlpha = 1;
+
+  // overlay dia/noite
+  const lightRadius = FIRE_LIGHT_RADIUS_MIN + (FIRE_LIGHT_RADIUS_MAX-FIRE_LIGHT_RADIUS_MIN)*(game.fire.intensity/FIRE_MAX);
+  drawNightOverlay(lightRadius);
+
+  // texto de aviso: fogueira baixa
+  if (game.fire.intensity < 25 && game.fire.intensity > 0) {
+    ctx.fillStyle = 'rgba(255,80,0,' + (0.5+Math.sin(game.time*6)*0.3) + ')';
+    ctx.font = 'bold 20px Arial'; ctx.textAlign='center';
+    ctx.fillText('⚠ A FOGUEIRA ESTÁ MORRENDO! Alimente-a com madeira [E]', W/2, 90);
+  }
+  if (game.fire.intensity <= 0) {
+    ctx.fillStyle = 'rgba(120,180,255,' + (0.6+Math.sin(game.time*8)*0.3) + ')';
+    ctx.font = 'bold 22px Arial'; ctx.textAlign='center';
+    ctx.fillText('❄ A FOGUEIRA APAGOU! Você está congelando!', W/2, 90);
+  }
+
+  // flutuadores
+  ctx.textAlign='center'; ctx.font='bold 14px Arial';
+  for (const fl of game.floaters) {
+    ctx.globalAlpha = clamp(fl.life,0,1);
+    ctx.fillStyle = '#000';
+    ctx.fillText(fl.text, fl.x-camx+1, fl.y-camy+1);
+    ctx.fillStyle = fl.color;
+    ctx.fillText(fl.text, fl.x-camx, fl.y-camy);
+  }
+  ctx.globalAlpha = 1;
+
+  // minimapa
+  drawMinimap();
+}
+
+function drawMinimap() {
+  const mw = 150, mh = 112, mx = W-mw-12, my = H-mh-12;
+  ctx.fillStyle='rgba(0,0,0,.55)';
+  ctx.fillRect(mx-3,my-3,mw+6,mh+6);
+  ctx.fillStyle = game.phase==='day' ? '#2e4d28':'#161f14';
+  ctx.fillRect(mx,my,mw,mh);
+  const sx = mw/WORLD_W, sy = mh/WORLD_H;
+  ctx.fillStyle='#4caf50';
+  for (const t of game.trees) if (t.alive) ctx.fillRect(mx+t.x*sx-1, my+t.y*sy-1, 2, 2);
+  ctx.fillStyle='#ff9800';
+  ctx.fillRect(mx+game.fire.x*sx-2, my+game.fire.y*sy-2, 5, 5);
+  ctx.fillStyle='#b8860b';
+  ctx.fillRect(mx+game.merchant.x*sx-2, my+game.merchant.y*sy-2, 4, 4);
+  ctx.fillStyle='#e74c3c';
+  for (const w of game.wolves) ctx.fillRect(mx+w.x*sx-1, my+w.y*sy-1, 3, 3);
+  ctx.fillStyle='#fff';
+  ctx.fillRect(mx+game.player.x*sx-2, my+game.player.y*sy-2, 4, 4);
+  ctx.strokeStyle='rgba(255,255,255,.4)';
+  ctx.strokeRect(mx+game.camera.x*sx, my+game.camera.y*sy, W*sx, H*sy);
+}
+
+// ------------------------- Loop -------------------------
+function loop(ts) {
+  if (!running) return;
+  const dt = Math.min(0.05, (ts - lastTime)/1000 || 0.016);
+  lastTime = ts;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+$('startBtn').addEventListener('click', () => {
+  newGame();
+  $('overlay').style.display = 'none';
+  $('ovKeys').style.display = 'block';
+  running = true;
+  lastTime = performance.now();
+  updateHUD();
+  requestAnimationFrame(loop);
+});
+
+window.__game = () => game; // expõe estado para debug/testes
+
+// escala responsiva simples mantendo proporção
+function fitCanvas() {
+  const scale = Math.min(window.innerWidth / W, window.innerHeight / H) * 0.97;
+  canvas.style.width = (W*scale)+'px';
+  canvas.style.height = (H*scale)+'px';
+}
+window.addEventListener('resize', fitCanvas);
+fitCanvas();
+</script>
+</body>
+</html>
