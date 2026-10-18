@@ -187,7 +187,11 @@
       <h1>🏠 Sua Sala Está Pronta!</h1>
       <p>Passe este link para os outros jogadores abrirem <b>no celular ou PC, na mesma rede Wi-Fi</b>:</p>
       <div id="hostUrlBox"><span id="hostUrlText"></span><button id="copyUrlBtn">📋 Copiar</button></div>
-      <p style="font-size:13px;color:#aaa">Se o servidor foi iniciado com <code style="background:#333;padding:2px 6px;border-radius:4px">python3 server.py</code>, você também pode entrar pelo menu "Entrar em Sala" digitando <code style="background:#333;padding:2px 6px;border-radius:4px">ws://SEU_IP:8765</code>.</p>
+      <div style="margin:6px 0 2px;font-size:14px">Endereço do servidor (WebSocket):
+        <code id="wsAddrText" style="background:#333;padding:3px 10px;border-radius:6px;color:#ffd97a"></code>
+        <button id="copyWsBtn" style="padding:3px 10px;font-size:12px">📋</button>
+      </div>
+      <p style="font-size:13px;color:#aaa" id="hostTip"></p>
       <ul id="lobbyPlayers"></ul>
       <div class="ovBtnRow">
         <button id="btnStartGame">🚀 Iniciar Jogo</button>
@@ -198,8 +202,8 @@
     <!-- TELA "ENTRAR EM SALA" -->
     <div id="menuJoin" style="display:none;flex-direction:column;align-items:center;">
       <h1>📲 Entrar em Sala</h1>
-      <p>Abra o link que o anfitrião te passou — ele conecta automaticamente.<br>Ou digite o endereço do servidor:</p>
-      <input class="ovInput" id="serverInput" placeholder="ws://192.168.0.10:8765" style="width:320px">
+      <p>Abra o link que o anfitrião te passou — ele conecta automaticamente.<br>Ou digite o endereço do servidor (aceita IP, localhost, com ou sem ws:// e porta):</p>
+      <input class="ovInput" id="serverInput" placeholder="ex.: 192.168.0.10  ou  ws://192.168.0.10:8765" style="width:340px">
       <div id="joinLobbyBox" style="display:none;flex-direction:column;align-items:center;">
         <ul id="lobbyPlayersJoin"></ul>
         <p style="color:#ffd97a;font-size:15px">⏳ Aguardando o anfitrião iniciar o jogo...</p>
@@ -263,7 +267,7 @@ let running = false;     // loop ativo
 let lastTime = 0;
 let keys = {};           // teclado local (solo/host)
 let shopOpen = false;
-let net = { sock: null, lobby: [], lastSnapT: 0, snapQueue: [], pendingStartUrl: null };
+let net = { sock: null, lobby: [], lastSnapT: 0, snapQueue: [], pendingStartUrl: null, lanIP: null, myPublicIP: null };
 let inputSeq = 0;
 let lastSentInput = '';
 
@@ -390,20 +394,71 @@ const me = () => game && game.players[myId];
 // =========================================================================
 //  REDE (WebSocket) — host autoritativo + clientes finos
 // =========================================================================
+function wsHost() {
+  // hostname real da página; nunca vazio (fallback localhost)
+  return location.hostname || 'localhost';
+}
 function wsURL(httpUrl) {
   // http://IP:PORT  ->  ws://IP:8765   (nunca retorna hostname vazio)
   let host = '';
   try { host = new URL(httpUrl).hostname; } catch(e) {}
-  if (!host) {
-    // fallback: usa o hostname real da página (ex.: localhost, 192.168.x.x)
-    host = location.hostname || 'localhost';
-  }
+  if (!host) host = wsHost();
   // se servido via HTTPS, o navegador exige WSS para WebSocket
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   return proto + '://' + host + ':8765';
 }
+function pageBaseURL() {
+  // URL http(s) da página com hostname garantido (funciona até em file://)
+  if (location.protocol === 'file:') return 'http://localhost:8000/';
+  return location.origin + location.pathname;
+}
+function shareLink() {
+  // Link que o anfitrião mostra/copiar. Regras:
+  //  - aberto via IP local ou domínio  -> mantém exatamente esse endereço (?join=1)
+  //  - aberto via localhost            -> converte para o IP da LAN (se detectado),
+  //                                       pois celular nenhum enxerga "localhost" do PC
+  //  - aberto via file://              -> gera link http://SEU_IP:8000 (ou localhost)
+  let u;
+  try { u = new URL(pageBaseURL()); } catch(e) { return null; }
+  const h = u.hostname;
+  if (h === 'localhost' && net.lanIP) u.hostname = net.lanIP;
+  u.search = '?join=1';
+  return u.href;
+}
 function send(o) {
   if (net.sock && net.sock.readyState === 1) net.sock.send(JSON.stringify(o));
+}
+// ---- Detecção do IP da LAN do anfitrião (WebRTC ICE — sem dependências) ----
+// Quando o jogo é aberto via "localhost", celulares NÃO conseguem usar esse
+// link. Detectamos o IP local (192.168.x.x / 10.x / 172.x) e mostramos o link
+// correto para compartilhar.
+function isPrivateIP(ip) {
+  return /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(ip);
+}
+function detectLanIP(cb) {
+  try {
+    const pc = new RTCPeerConnection({ iceServers: [] });
+    pc.createDataChannel('x');
+    let done = false;
+    pc.onicecandidate = e => {
+      if (done) return;
+      if (!e || !e.candidate || !e.candidate.candidate) return;
+      const m = e.candidate.candidate.match(/([0-9]{1,3}(?:\.[0-9]{1,3}){3})/);
+      if (m && isPrivateIP(m[1]) && m[1] !== '127.0.0.1') {
+        done = true; cb(m[1]); try { pc.close(); } catch(err){}
+      }
+    };
+    pc.createOffer().then(o => pc.setLocalDescription(o)).catch(() => {});
+    setTimeout(() => { if (!done) { try { pc.close(); } catch(err){} } }, 4000);
+  } catch(e) { /* WebRTC indisponível — segue sem IP detectado */ }
+}
+function detectPublicIP(cb) {
+  try {
+    fetch('https://api.ipify.org?format=json')
+      .then(r => r.json())
+      .then(j => cb && cb(j.ip))
+      .catch(() => {});
+  } catch(e) {}
 }
 function setConn(msg) { $('connStatus').textContent = msg || ''; }
 
@@ -1449,19 +1504,50 @@ $('btnSolo').onclick = () => {
 
 $('btnHost').onclick = () => {
   setConn('Conectando ao servidor...');
-  hostRoom(wsURL(location.href), () => {
+  // URL do WebSocket: MESMA máquina → localhost; servido via IP → mesmo IP da página
+  const wsUrl = (location.hostname === 'localhost' || location.hostname === '' || location.protocol === 'file:')
+    ? 'ws://localhost:8765'
+    : wsURL(location.href);
+  hostRoom(wsUrl, () => {
     MODE = 'host';
     showMenu('menuHost');
-    const link = location.origin.replace(/^http/, 'ws') + location.pathname + '?join=1';
-    $('hostUrlText').textContent = link;
+    refreshShareInfo();
+    // Se a página foi aberta por "localhost", detecta o IP da LAN para gerar o
+    // link certo para os CELULARES (que não enxergam o localhost do PC).
+    if (location.hostname === 'localhost' || location.protocol === 'file:') {
+      detectLanIP(ip => { net.lanIP = ip; refreshShareInfo(); });
+      detectPublicIP(ip => { net.myPublicIP = ip; refreshShareInfo(); });
+    }
     setConn('✔ Conectado! Agora é só iniciar quando todos entrarem.');
   });
 };
+function refreshShareInfo() {
+  const link = shareLink();
+  if (link) $('hostUrlText').textContent = link;
+  const h = location.hostname || 'localhost';
+  $('wsAddrText').textContent = 'ws://' + h + ':8765';
+  const tip = $('hostTip');
+  if (h === 'localhost' && !net.lanIP) {
+    tip.textContent = '⏳ Detectando o IP da sua rede para gerar o link dos celulares... (se demorar, veja o endereço do servidor abaixo e digite-o no menu "Entrar em Sala" dos outros aparelhos)';
+  } else if (net.lanIP && h === 'localhost') {
+    tip.innerHTML = '📱 Você abriu via <b>localhost</b>. O link acima já usa o IP da sua rede (<b>' + net.lanIP +
+      '</b>) — é esse que os celulares precisam. O seu próprio navegador continua conectado em <b>ws://localhost:8765</b>.' +
+      (net.myPublicIP ? '<br>🌐 IP público (só para jogar fora da Wi-Fi, com port-forward): <b>' + net.myPublicIP + '</b>' : '');
+  } else {
+    tip.textContent = 'Os jogadores conectados por este link entram automaticamente na sala (porta 8765). Todos precisam estar na mesma rede Wi-Fi.';
+  }
+}
 $('btnBackHost').onclick = () => { leaveRoom(); MODE = 'solo'; showMenu('menuMain'); };
 $('copyUrlBtn').onclick = () => {
   const t = $('hostUrlText').textContent;
   if (navigator.clipboard) navigator.clipboard.writeText(t).then(()=>{ $('copyUrlBtn').textContent='✔ Copiado!'; setTimeout(()=>$('copyUrlBtn').textContent='📋 Copiar',1500); });
   else { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); $('copyUrlBtn').textContent='✔ Copiado!'; }
+};
+$('copyWsBtn').onclick = () => {
+  const t = $('wsAddrText').textContent;
+  const ok = () => { $('copyWsBtn').textContent='✔'; setTimeout(()=>$('copyWsBtn').textContent='📋',1500); };
+  if (navigator.clipboard) navigator.clipboard.writeText(t).then(ok);
+  else { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); ok(); }
 };
 $('btnStartGame').onclick = () => {
   if (!net.lobby || net.lobby.length < 1) { setConn('Aguarde jogadores entrarem na sala.'); return; }
@@ -1481,14 +1567,22 @@ $('btnBackJoin').onclick = () => { if (net.sock) leaveRoom(); showMenu('menuMain
 $('btnLeaveJoin').onclick = () => { leaveRoom(); location.reload(); };
 $('btnConnect').onclick = () => {
   let url = ($('serverInput').value || '').trim();
-  if (!url) url = wsURL(location.href);
-  // normaliza entradas parciais digitadas pelo usuário (ex.: "192.168.0.10:8765", "localhost" ou "SEU_IP")
+  if (!url) {
+    // sem nada digitado: conecta no MESMO servidor da página (ou localhost se file://)
+    url = (location.protocol === 'file:') ? 'ws://localhost:8765' : wsURL(location.href);
+  }
+  // normaliza entradas parciais digitadas pelo usuário. Aceita:
+  //   "ws://192.168.0.10:8765" | "192.168.0.10:8765" | "192.168.0.10" | "localhost" | "http(s)://IP:PORTA" (porta vira 8765)
   const hasProto = /^wss?:\/\//.test(url);
-  if (!hasProto) url = 'ws://' + url.replace(/^https?:\/\//, '');
+  if (!hasProto) {
+    // remove http(s):// e a porta dele (ex.: :8000) — a padrão 8765 é aplicada abaixo
+    url = 'ws://' + url.replace(/^https?:\/\//, '').replace(/:\d+$/, '');
+  }
   try {
     const u = new URL(url);
-    if (!u.port) u.port = '8765';           // adiciona a porta padrão se faltar
-    url = u.protocol + '//' + u.host;       // preserva ws:// ou wss:// digitado/padrão
+    if (!u.hostname) u.hostname = wsHost();     // nunca deixa "ws://:8765"
+    if (!u.port) u.port = '8765';               // adiciona a porta padrão se faltar
+    url = u.protocol + '//' + u.hostname + ':' + u.port;
   } catch(e) {}
   setConn('Conectando a ' + url + '...');
   joinRoom(url, () => setConn('✔ Conectado! Aguardando o anfitrião...'));
@@ -1513,6 +1607,7 @@ $('btnMenuBack').onclick = () => location.reload();
     if (q.get('join') === '1') {
       showMenu('menuJoin');
       setConn('Entrando na sala automaticamente...');
+      // ws://MESMO-host-da-página:8765 (se abrir por IP, conecta no IP; se abrir por localhost, no localhost)
       joinRoom(wsURL(location.href), () => setConn('✔ Conectado! Aguardando o anfitrião iniciar...'));
     }
   } catch(e){}

@@ -17,6 +17,7 @@ O mesmo processo pode servir o index.html via HTTP para facilitar o link:
 """
 import asyncio
 import json
+import socket
 
 try:
     import websockets
@@ -100,11 +101,35 @@ async def handler(ws):
             await broadcast({"t": "lobby", "players": lobby_list()})
 
 
+def get_lan_ip(sock):
+    """Descobre o IP da LAN sem enviar tráfego real (truque do socket UDP)."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("10.255.255.255", 1))
+        return s.getsockname()[0]
+    except OSError:
+        try:
+            return socket.gethostbyname(socket.gethostname())
+        except OSError:
+            return None
+    finally:
+        s.close()
+
+
 async def main():
-    print("🔥 Servidor do lobby em ws://%s:%d" % (HOST, PORT))
+    srv = await websockets.serve(handler, HOST, PORT, max_size=2**20)
+    # porta real (útil se PORT for 0) e IP da LAN para montar o link dos celulares
+    port = srv.sockets[0].getsockname()[1]
+    lan_ip = get_lan_ip(srv)
+    print("🔥 Servidor do lobby rodando!")
+    print("   Local (seu PC)     : ws://localhost:%d" % port)
+    if lan_ip and not lan_ip.startswith("127."):
+        print("   Rede (celulares)   : ws://%s:%d" % (lan_ip, port))
+        print("   Link p/ compartilhar: http://%s:8000/index.html?join=1" % lan_ip)
+    else:
+        print("   (não foi possível detectar o IP da LAN; descubra com: hostname -I ou ipconfig)")
     print("   Abra o jogo no navegador do anfitrião e clique em 'Criar Sala'.")
-    async with websockets.serve(handler, HOST, PORT, max_size=2**20):
-        await asyncio.Future()
+    await asyncio.Future()
 
 
 if __name__ == "__main__":
