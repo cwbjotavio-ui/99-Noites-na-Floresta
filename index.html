@@ -391,11 +391,16 @@ const me = () => game && game.players[myId];
 //  REDE (WebSocket) — host autoritativo + clientes finos
 // =========================================================================
 function wsURL(httpUrl) {
-  // http://IP:PORT  ->  ws://IP:8765
-  try {
-    const u = new URL(httpUrl);
-    return 'ws://' + u.hostname + ':8765';
-  } catch(e) { return 'ws://localhost:8765'; }
+  // http://IP:PORT  ->  ws://IP:8765   (nunca retorna hostname vazio)
+  let host = '';
+  try { host = new URL(httpUrl).hostname; } catch(e) {}
+  if (!host) {
+    // fallback: usa o hostname real da página (ex.: localhost, 192.168.x.x)
+    host = location.hostname || 'localhost';
+  }
+  // se servido via HTTPS, o navegador exige WSS para WebSocket
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  return proto + '://' + host + ':8765';
 }
 function send(o) {
   if (net.sock && net.sock.readyState === 1) net.sock.send(JSON.stringify(o));
@@ -1477,7 +1482,14 @@ $('btnLeaveJoin').onclick = () => { leaveRoom(); location.reload(); };
 $('btnConnect').onclick = () => {
   let url = ($('serverInput').value || '').trim();
   if (!url) url = wsURL(location.href);
-  if (!/^wss?:\/\//.test(url)) url = 'ws://' + url.replace(/^https?:\/\//,'');
+  // normaliza entradas parciais digitadas pelo usuário (ex.: "192.168.0.10:8765", "localhost" ou "SEU_IP")
+  const hasProto = /^wss?:\/\//.test(url);
+  if (!hasProto) url = 'ws://' + url.replace(/^https?:\/\//, '');
+  try {
+    const u = new URL(url);
+    if (!u.port) u.port = '8765';           // adiciona a porta padrão se faltar
+    url = u.protocol + '//' + u.host;       // preserva ws:// ou wss:// digitado/padrão
+  } catch(e) {}
   setConn('Conectando a ' + url + '...');
   joinRoom(url, () => setConn('✔ Conectado! Aguardando o anfitrião...'));
 };
