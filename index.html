@@ -167,6 +167,30 @@
   #pausePanel .ovBtnRow button { font-size: 17px; padding: 12px 26px; }
   #pausePanel #btnResume { background: linear-gradient(90deg,#e67e22,#f39c12); border:none; color:#241503; font-weight:bold; border-radius:10px; }
   #pauseInfo { font-size: 14px; color: #ccc; line-height: 1.8; max-width: 560px; }
+
+  /* ---------- MENUS (overlay) adaptados p/ celular ----------
+     O painel é um "cartão" com rolagem interna: nunca estoura a tela,
+     mesmo em paisagens pequenas de celular. */
+  #overlay { overflow: hidden; padding: 0; }
+  #overlay > div.menu {
+    display: none; flex-direction: column; align-items: center;
+    width: min(760px, 94vw); max-height: min(94vh, 94dvh); max-height: min(94dvh, 94dvh);
+    overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+    background: rgba(14,12,22,.92); border: 2px solid rgba(243,156,18,.4); border-radius: 16px;
+    padding: clamp(12px, 2.5vh, 26px) clamp(14px, 3vw, 30px); box-shadow: 0 10px 50px rgba(0,0,0,.7);
+  }
+  #overlay h1 { font-size: clamp(20px, 4.2vh, 42px); margin-bottom: 6px; }
+  #overlay p  { font-size: clamp(11px, 1.9vh, 16px); margin-bottom: 6px; }
+  #overlay .keys { font-size: clamp(10px, 1.6vh, 14px); line-height: 1.7; margin-bottom: 8px; }
+  #overlay button { font-size: clamp(13px, 2.2vh, 20px); padding: clamp(8px, 1.6vh, 14px) clamp(14px, 3vw, 44px); }
+  .ovInput { font-size: clamp(13px, 2.2vh, 18px); padding: 8px 12px; margin-bottom: 8px; width: min(340px, 80vw); }
+  #hostUrlBox { padding: 8px 12px; margin-bottom: 8px; }
+  #lobbyPlayers, #lobbyPlayersJoin { font-size: clamp(11px, 1.9vh, 16px); margin: 4px auto 8px; }
+  @media (max-height: 480px) {
+    #overlay p.descLong { display: none; }          /* texto longo some em telas baixas */
+    #overlay .keys { display: none; }
+    #overlay h1 { margin-bottom: 4px; }
+  }
 </style>
 </head>
 <body>
