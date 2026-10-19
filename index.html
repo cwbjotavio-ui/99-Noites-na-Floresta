@@ -26,7 +26,7 @@
   #rotateHint button { cursor: pointer; background: linear-gradient(90deg,#e67e22,#f39c12); border: none; color: #241503;
     font-size: 16px; font-weight: bold; padding: 12px 26px; border-radius: 10px; }
   @keyframes rotAnim { 0%,100% { transform: rotate(0deg); } 55%,75% { transform: rotate(-90deg); } }
-  canvas { position: absolute; left: 0; top: 0; display: block; background: #2d4a2d; image-rendering: pixelated; }
+  canvas { position: absolute; left: 0; top: 0; display: block; background: #2d4a2d; }
 
   /* ---------- HUD ---------- */
   .hud { position: absolute; pointer-events: none; color: #fff; text-shadow: 1px 1px 3px #000; z-index: 10; }
@@ -48,6 +48,19 @@
 
   #inventory { background: rgba(0,0,0,.55); border: 2px solid rgba(255,255,255,.3); border-radius: 10px; padding: 7px 10px; font-size: 12px; line-height: 1.55; min-width: 140px; }
   #inventory h3 { font-size: 11px; margin-bottom: 3px; color: #ffd97a; letter-spacing: 1px; }
+  /* HUD compacto para telas pequenas (celular em paisagem): menos largura, mais leve */
+  @media (max-height: 500px) {
+    #topLeft { width: min(190px, 34vw); }
+    .barWrap { padding: 3px 6px; margin-bottom: 4px; }
+    .barLabel { font-size: 10px; }
+    .barOuter { height: 11px; max-width: 170px; }
+    #dayInfo { font-size: 12px; }
+    #dayIcon { font-size: 16px; }
+    #nightsSurvived { font-size: 11px; }
+    #inventory { font-size: 10px; padding: 4px 7px; min-width: 0; line-height: 1.35; }
+    #inventory h3 { font-size: 9px; }
+    #hint { font-size: 10px; max-width: 44vw; white-space: normal; }
+  }
 
   #hint { font-size: 12px; background: rgba(0,0,0,.5); padding: 4px 12px; border-radius: 20px; opacity: .9; max-width: 60vw; overflow: hidden; text-overflow: ellipsis; }
 
@@ -106,6 +119,8 @@
   @media (pointer: coarse), (max-width: 900px) {
     #touchControls.on { display: block; }
   }
+  /* fallback: se o jogo está rodando e é touch, mostra os controles mesmo se a media query falhar */
+  body.touch.playing #touchControls { display: block !important; }
   #joyZone { position: absolute; left: 0; bottom: 0; width: 46%; height: 100%; pointer-events: auto; }
   #joyBase { position: absolute; width: 120px; height: 120px; border-radius: 50%;
     background: rgba(255,255,255,.08); border: 2px solid rgba(255,255,255,.3); display: none; }
@@ -114,10 +129,11 @@
   .tbtn { position: absolute; pointer-events: auto; border-radius: 50%; border: 2px solid rgba(255,255,255,.45);
     background: rgba(0,0,0,.45); color: #fff; font-weight: bold; display: flex; justify-content: center; align-items: center; }
   .tbtn:active, .tbtn.pressed { background: rgba(255,255,255,.25); }
-  #btnAttack { right: calc(18px + env(safe-area-inset-right)); bottom: calc(96px + env(safe-area-inset-bottom)); width: 84px; height: 84px; font-size: 36px; }
-  #btnFeed   { right: calc(112px + env(safe-area-inset-right)); bottom: calc(30px + env(safe-area-inset-bottom)); width: 72px; height: 72px; font-size: 28px; }
-  #btnChop   { right: calc(22px + env(safe-area-inset-right));  bottom: calc(20px + env(safe-area-inset-bottom)); width: 72px; height: 72px; font-size: 28px; }
-  #btnShop   { right: calc(24px + env(safe-area-inset-right));  bottom: calc(190px + env(safe-area-inset-bottom)); width: 58px; height: 58px; font-size: 22px; }
+  #btnAttack { right: calc(16px + env(safe-area-inset-right)); bottom: calc(150px + env(safe-area-inset-bottom)); width: 76px; height: 76px; font-size: 34px; }
+  #btnFeed   { right: calc(104px + env(safe-area-inset-right)); bottom: calc(88px + env(safe-area-inset-bottom)); width: 64px; height: 64px; font-size: 26px; }
+  #btnChop   { right: calc(18px + env(safe-area-inset-right));  bottom: calc(24px + env(safe-area-inset-bottom)); width: 76px; height: 76px; font-size: 30px; }
+  #btnCook   { right: calc(104px + env(safe-area-inset-right)); bottom: calc(166px + env(safe-area-inset-bottom)); width: 60px; height: 60px; font-size: 24px; }
+  #btnShop   { right: calc(26px + env(safe-area-inset-right));  bottom: calc(240px + env(safe-area-inset-bottom)); width: 54px; height: 54px; font-size: 22px; }
   #shopPanel { max-width: 92vw; max-height: 86vh; overflow-y: auto; }
 
   /* ---------- Botões Pausa / Sair (canto superior direito) ---------- */
@@ -180,10 +196,11 @@
   <!-- Controles de toque (celular) -->
   <div id="touchControls">
     <div id="joyZone"><div id="joyBase"></div><div id="joyThumb"></div></div>
-    <div class="tbtn" id="btnAttack">🗡️</div>
-    <div class="tbtn" id="btnFeed">🔥</div>
-    <div class="tbtn" id="btnChop">🪓</div>
-    <div class="tbtn" id="btnShop">🏪</div>
+    <div class="tbtn" id="btnAttack" title="Atacar">🗡️</div>
+    <div class="tbtn" id="btnFeed" title="Alimentar fogueira">🔥</div>
+    <div class="tbtn" id="btnChop" title="Cortar / interagir">🪓</div>
+    <div class="tbtn" id="btnCook" title="Cozinhar sopa (na bancada)">🍲</div>
+    <div class="tbtn" id="btnShop" title="Mercador">🏪</div>
   </div>
 
   <!-- Botões de sistema: Pausar / Sair -->
@@ -327,6 +344,21 @@ let game = null;         // objeto principal do estado (autoritativo no host)
 let running = false;     // loop ativo
 let paused = false;      // pausa local (botão ⏸ / tecla P)
 let lastTime = 0;
+// 🔁 "watchdog": se o rAF for congelado (tela bloqueada, app em segundo plano,
+// WebView de navegador mobile), retomamos automaticamente ao voltar — sem isso
+// o jogo "para" e os botões parecem não funcionar até recarregar a página.
+setInterval(() => {
+  if (running && !paused && game && document.visibilityState === 'visible') {
+    const age = performance.now() - lastTime;
+    if (age > 1200) { lastTime = performance.now(); requestAnimationFrame(loop); }
+  }
+}, 800);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && running && !paused && game) {
+    lastTime = performance.now();
+    requestAnimationFrame(loop);
+  }
+});
 let keys = {};           // teclado local (solo/host)
 let shopOpen = false;
 let net = { sock: null, lobby: [], lastSnapT: 0, snapQueue: [], pendingStartUrl: null, lanIP: null, myPublicIP: null };
@@ -344,6 +376,7 @@ window.addEventListener('keydown', e => {
   if (k === 'e') handleInteract();
   if (k === ' ') playerAttack();
   if (k === 'b') toggleShop();
+  if (k === 'c') cookSoup();
   if (k === 'm') muted = !muted;
 });
 window.addEventListener('keyup', e => { keys[(e.key || '').toLowerCase()] = false; });
@@ -400,6 +433,7 @@ const touchCtl = { mx: 0, my: 0, chop: false };
   // setPointerCapture garante que o "soltar" seja detectado mesmo se o dedo escorregar para fora do botão.
   function actionBtn(id, onDown, onUp){
     const el = $(id);
+    if (!el) return;
     let activePtr = null;
     el.addEventListener('pointerdown', e => {
       e.preventDefault();
@@ -419,10 +453,21 @@ const touchCtl = { mx: 0, my: 0, chop: false };
     el.addEventListener('lostpointercapture', up);
     el.addEventListener('contextmenu', e => e.preventDefault());
   }
-  actionBtn('btnChop',   () => { touchCtl.chop = true;  handleInteract(); }, () => { touchCtl.chop = false; });
-  actionBtn('btnFeed',   () => feedFire());
-  actionBtn('btnAttack', () => playerAttack());
-  actionBtn('btnShop',   () => toggleShop());
+  // 🔒 DESBLOQUEIO: os botões só funcionam de verdade quando o jogo está rodando.
+  // Se algum toque chegar "cego" (tela bloqueada, menu aberto), ele acorda o loop
+  // em vez de ser ignorado silenciosamente.
+  const guard = fn => () => {
+    if (running && !paused && game && me()) fn();
+    else if (!running && game && $('overlay').style.display === 'none') {
+      running = true; paused = false; lastTime = performance.now();
+      requestAnimationFrame(loop);
+    }
+  };
+  actionBtn('btnChop',   () => { touchCtl.chop = true;  guard(handleInteract)(); }, () => { touchCtl.chop = false; });
+  actionBtn('btnFeed',   guard(feedFire));
+  actionBtn('btnAttack', guard(playerAttack));
+  actionBtn('btnCook',   guard(cookSoup));
+  actionBtn('btnShop',   guard(toggleShop));
 })();
 
 // ------------------------- Utilidades -------------------------
@@ -454,7 +499,7 @@ function makePlayer(id, name, color, idx) {
     collectingIdx: -1, collectProgress: 0,
     hurtFlash: 0, walkPhase: 0,
     inp: { mx:0, my:0, chop:false, seq:0 },
-    cmd: { interact:false, attack:false, shop:false, feed:false },
+    cmd: { interact:false, attack:false, shop:false, feed:false, cook:false },
     connected: true, deathTimer: 0, downed: false,
   };
 }
@@ -588,6 +633,7 @@ function handleNetMsg(m) {
         if (m.act === 'attack')   p.cmd.attack = true;
         if (m.act === 'shop')     p.cmd.shop = true;
         if (m.act === 'feed')     p.cmd.feed = true;
+        if (m.act === 'cook')     p.cmd.cook = true;
         if (m.act === 'buy_axe')  buyFor(p, 'axe');
         if (m.act === 'buy_spear')  buyFor(p, 'spear');
         if (m.act === 'buy_cloth')  buyFor(p, 'cloth');
@@ -764,6 +810,7 @@ function beep(freq, dur, type, vol) {
   if (muted) return;
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
     o.type = type || 'square'; o.frequency.value = freq;
     g.gain.setValueAtTime(vol || .08, audioCtx.currentTime);
@@ -779,6 +826,7 @@ const SFX = {
   hurt:   () => beep(120, .25, 'sawtooth', .12),
   pickup: () => beep(880, .1, 'sine', .08),
   buy:    () => { beep(660, .08, 'sine', .1); setTimeout(()=>beep(990,.12,'sine',.1),80); },
+  cook:   () => { beep(330,.1,'sine',.09); setTimeout(()=>beep(440,.12,'sine',.09),100); setTimeout(()=>beep(550,.15,'sine',.09),220); },
   nightfall: () => beep(220, .6, 'sawtooth', .07),
   dawn:   () => { beep(440,.2,'sine',.08); setTimeout(()=>beep(550,.2,'sine',.08),150); setTimeout(()=>beep(660,.3,'sine',.08),300); },
 };
@@ -787,6 +835,27 @@ const SFX = {
 function addFloater(text, x, y, color) {
   game.floaters.push({ text, x, y, life: 1.2, color: color || '#fff' });
   if (game.floaters.length > 40) game.floaters.splice(0, game.floaters.length - 40);
+}
+
+// 🍲 Cozinhar sopa: precisa de 1 carne + 1 couro; recupera 35 de vida e 12 de fogueira
+function cookSoup(p) {
+  p = p || me();
+  if (!p) return;
+  if (MODE === 'client') { sendInput('cook'); return; }
+  doCook(p);
+}
+function doCook(p) {
+  if (p.inv.meat < 1 || p.inv.leather < 1) {
+    if (p === me()) addFloater('🍲 Precisa de 1🍖 + 1🟤!', p.x, p.y - 30, '#e74c3c');
+    return;
+  }
+  p.inv.meat--; p.inv.leather--;
+  p.hp = Math.min(p.maxHp, p.hp + 35);
+  game.fire.intensity = clamp(game.fire.intensity + 12, 0, FIRE_MAX);
+  if (p === me()) SFX.cook();
+  addFloater('🍲 Sopa! +35 ❤️', p.x, p.y - 34, '#8bc34a');
+  for (let i=0;i<8;i++) spawnParticle(p.x, p.y - 10, '#b9f6ca', rand(15,40));
+  updateHUD();
 }
 
 function feedFire(p) {
@@ -990,7 +1059,11 @@ function update(dt) {
       if (p.cmd.attack)   { p.cmd.attack = false; attackFor(p); }
       if (p.cmd.shop)     { p.cmd.shop = false; openShopFor(p); }
       if (p.cmd.feed)     { p.cmd.feed = false; feedFire(p); }
+      if (p.cmd.cook)     { p.cmd.cook = false; doCook(p); }
     }
+  } else if (MODE === 'solo') {
+    const p = me();
+    if (p && p.cmd.cook) { p.cmd.cook = false; doCook(p); }
   }
 
   // ----- Ciclo dia/noite -----
@@ -1320,21 +1393,22 @@ function drawMerchant(camx, camy) {
   ctx.fillStyle='#f1c27d'; ctx.beginPath(); ctx.arc(x, y-8, 7, 0, Math.PI*2); ctx.fill();
   ctx.fillStyle='#2c3e50'; ctx.fillRect(x-6, y-2, 12, 12);
   ctx.fillStyle='#b8860b'; ctx.fillRect(x-8, y-16, 16, 4); // chapéu
-  // indicador "B"
+  // indicador da loja
   const mp = me();
   if (mp && dist(mp.x, mp.y, m.x, m.y) < 80) {
-    ctx.fillStyle = '#ffd97a'; ctx.font = 'bold 13px Arial'; ctx.textAlign='center';
-    ctx.fillText(isTouch ? '🏪 toque no botão' : '[B] Loja', x, y-42 + Math.sin(game.time*4)*2);
+    ctx.fillStyle = '#ffd97a'; ctx.font = 'bold ' + Math.round(13*uiScale()) + 'px Arial'; ctx.textAlign='center';
+    ctx.fillText('🏪 Loja (' + (isTouch ? 'botão' : 'B') + ')', x, y-42 + Math.sin(game.time*4)*2);
   }
 }
 
 function drawWolf(w, camx, camy) {
   const x = w.x - camx, y = w.y - camy;
   if (x<-50||x>VIEW_W+50||y<-50||y>VIEW_H+50) return;
+  const s = uiScale();
   ctx.fillStyle='rgba(0,0,0,.35)';
-  ctx.beginPath(); ctx.ellipse(x, y+8, 16, 6, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x, y+8*s, 16*s, 6*s, 0, 0, Math.PI*2); ctx.fill();
   const nearP = nearestAlivePlayer(w.x, w.y); const facing = nearP ? (w.x < nearP.x ? 1 : -1) : 1;
-  ctx.save(); ctx.translate(x,y); ctx.scale(facing,1);
+  ctx.save(); ctx.translate(x,y); ctx.scale(facing*s, s);
   const body = w.hitFlash>0 ? '#ff8a8a' : (w.burning ? '#8a6d5a' : '#5c6370');
   // corpo
   ctx.fillStyle = body;
@@ -1356,8 +1430,8 @@ function drawWolf(w, camx, camy) {
   ctx.restore();
   // barra de vida
   if (w.hp < w.maxHp) {
-    ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(x-16, y-26, 32, 5);
-    ctx.fillStyle='#e74c3c'; ctx.fillRect(x-16, y-26, 32*(w.hp/w.maxHp), 5);
+    ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(x-16*s, y-26*s, 32*s, 5*s);
+    ctx.fillStyle='#e74c3c'; ctx.fillRect(x-16*s, y-26*s, 32*s*(w.hp/w.maxHp), 5*s);
   }
 }
 
@@ -1375,80 +1449,89 @@ function nearestAlivePlayer(x, y) {
 function drawOnePlayer(p, camx, camy) {
   const x = p.x - camx, y = p.y - camy;
   if (x < -80 || x > VIEW_W+80 || y < -80 || y > VIEW_H+80) return;
+  const s = uiScale();   // escala visual: no celular os personagens ficam maiores
   const bob = Math.sin(p.walkPhase)*2;
   ctx.globalAlpha = p.downed ? 0.35 : (p.connected === false ? 0.5 : 1);
   ctx.fillStyle='rgba(0,0,0,.35)';
-  ctx.beginPath(); ctx.ellipse(x, y+10, 12, 5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x, y+10*s, 12*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
   // pernas
   ctx.fillStyle='#4e342e';
-  ctx.fillRect(x-7, y+2, 5, 9+bob); ctx.fillRect(x+2, y+2, 5, 9-bob);
+  ctx.fillRect(x-7*s, y+2*s, 5*s, (9+bob)*s); ctx.fillRect(x+2*s, y+2*s, 5*s, (9-bob)*s);
   // corpo (jaqueta colorida por jogador)
   ctx.fillStyle = p.hurtFlash>0 ? '#ff6b6b' : p.color;
-  ctx.fillRect(x-9, y-8+bob*0.3, 18, 12);
+  ctx.fillRect(x-9*s, y-8*s+bob*0.3, 18*s, 12*s);
+  // contorno escuro para destacar o personagem do fundo (visibilidade no celular)
+  ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.lineWidth = 1.5*s;
+  ctx.strokeRect(x-9*s, y-8*s+bob*0.3, 18*s, 12*s);
   // cabeça
   ctx.fillStyle='#f1c27d';
-  ctx.beginPath(); ctx.arc(x, y-14+bob*0.3, 8, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x, y-14*s+bob*0.3, 8*s, 0, Math.PI*2); ctx.fill();
   // cabelo
   ctx.fillStyle='#3e2723';
-  ctx.beginPath(); ctx.arc(x, y-16+bob*0.3, 8, Math.PI, 0); ctx.fill();
+  ctx.beginPath(); ctx.arc(x, y-16*s+bob*0.3, 8*s, Math.PI, 0); ctx.fill();
   // arma na direção que olha
   const ax = Math.cos(p.dir), ay = Math.sin(p.dir);
   if (p.swing > 0) {
     const sw = (0.25 - p.swing)/0.25 * Math.PI*0.8 - Math.PI*0.4;
-    ctx.save(); ctx.translate(x, y-2); ctx.rotate(p.dir + sw);
-    ctx.strokeStyle='#b0bec5'; ctx.lineWidth=3;
-    ctx.beginPath(); ctx.moveTo(6,0); ctx.lineTo(34,0); ctx.stroke();
+    ctx.save(); ctx.translate(x, y-2*s); ctx.rotate(p.dir + sw);
+    ctx.strokeStyle='#b0bec5'; ctx.lineWidth=3*s;
+    ctx.beginPath(); ctx.moveTo(6*s,0); ctx.lineTo(34*s,0); ctx.stroke();
     ctx.fillStyle='#eceff1';
-    ctx.beginPath(); ctx.moveTo(34,0); ctx.lineTo(28,-4); ctx.lineTo(28,4); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(34*s,0); ctx.lineTo(28*s,-4*s); ctx.lineTo(28*s,4*s); ctx.fill();
     ctx.restore();
   } else {
-    ctx.strokeStyle='#8d6e63'; ctx.lineWidth=3;
-    ctx.beginPath(); ctx.moveTo(x+ax*8, y-2+ay*8); ctx.lineTo(x+ax*22, y-2+ay*22); ctx.stroke();
+    ctx.strokeStyle='#8d6e63'; ctx.lineWidth=3*s;
+    ctx.beginPath(); ctx.moveTo(x+ax*8*s, y-2*s+ay*8*s); ctx.lineTo(x+ax*22*s, y-2*s+ay*22*s); ctx.stroke();
   }
   // progresso de coleta
   if (p.collectingIdx >= 0 && p.collectProgress > 0) {
-    ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(x-16, y-34, 32, 6);
-    ctx.fillStyle='#a3e635'; ctx.fillRect(x-16, y-34, 32*p.collectProgress, 6);
+    ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(x-16*s, y-34*s, 32*s, 6*s);
+    ctx.fillStyle='#a3e635'; ctx.fillRect(x-16*s, y-34*s, 32*s*p.collectProgress, 6*s);
   }
   // marcador VISUAL do seu personagem (seta laranja pulsante acima da cabeça)
   if (p.id === myId && !paused) {
     const pulse = Math.sin(game.time*5)*3;
     ctx.fillStyle = '#ffb300';
-    ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 2*s;
     ctx.beginPath();
-    ctx.moveTo(x, y-40-pulse);
-    ctx.lineTo(x-8, y-52-pulse);
-    ctx.lineTo(x+8, y-52-pulse);
+    ctx.moveTo(x, y-(40+pulse)*s);
+    ctx.lineTo(x-8*s, y-(52+pulse)*s);
+    ctx.lineTo(x+8*s, y-(52+pulse)*s);
     ctx.closePath(); ctx.fill(); ctx.stroke();
+    // anel branco pulsando aos pés do SEU personagem (fácil de achar no celular)
+    ctx.strokeStyle = 'rgba(255,255,255,' + (0.5+Math.sin(game.time*4)*0.3) + ')';
+    ctx.lineWidth = 2*s;
+    ctx.beginPath(); ctx.ellipse(x, y+10*s, 16*s, 7*s, 0, 0, Math.PI*2); ctx.stroke();
   }
   // nome + indicador "(você)"
-  ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center';
-  ctx.fillStyle = '#000'; ctx.fillText(p.name, x+1, y-30+1);
+  ctx.font = 'bold ' + Math.round(11*s) + 'px Arial'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#000'; ctx.fillText(p.name, x+s, y-30*s+s);
   ctx.fillStyle = (p.id === myId) ? '#7fdbff' : '#fff';
-  ctx.fillText(p.name + (p.id === myId ? ' (você)' : ''), x, y-30);
+  ctx.fillText(p.name + (p.id === myId ? ' (você)' : ''), x, y-30*s);
   if (p.downed) {
-    ctx.font = 'bold 12px Arial'; ctx.fillStyle = '#ff6b6b';
-    ctx.fillText('💀 Levantando em ' + Math.ceil(p.deathTimer) + 's...', x, y-44);
+    ctx.font = 'bold ' + Math.round(12*s) + 'px Arial'; ctx.fillStyle = '#ff6b6b';
+    ctx.fillText('💀 Levantando em ' + Math.ceil(p.deathTimer) + 's...', x, y-44*s);
   } else if (p.hp < p.maxHp) {
-    ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(x-14, y-26, 28, 4);
-    ctx.fillStyle='#2ecc71'; ctx.fillRect(x-14, y-26, 28*clamp(p.hp/p.maxHp,0,1), 4);
+    ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(x-14*s, y-26*s, 28*s, 4*s);
+    ctx.fillStyle='#2ecc71'; ctx.fillRect(x-14*s, y-26*s, 28*s*clamp(p.hp/p.maxHp,0,1), 4*s);
   }
   ctx.globalAlpha = 1;
 }
 
 function drawDrop(d, camx, camy) {
+  const s = uiScale();
   const x = d.x - camx, y = d.y - camy + Math.sin(d.bob)*3;
   if (x<-30||x>VIEW_W+30||y<-30||y>VIEW_H+30) return;
   ctx.fillStyle='rgba(0,0,0,.3)';
-  ctx.beginPath(); ctx.ellipse(d.x-camx, d.y-camy+8, 9, 4, 0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(d.x-camx, d.y-camy+8*s, 9*s, 4*s, 0,0,Math.PI*2); ctx.fill();
   if (d.type==='leather') {
     ctx.fillStyle='#a1663a';
-    ctx.beginPath(); ctx.ellipse(x, y, 9, 7, .4, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle='#7c4a24'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(x, y, 9*s, 7*s, .4, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#7c4a24'; ctx.lineWidth=1.5*s; ctx.stroke();
   } else {
     ctx.fillStyle='#ef7d8b';
-    ctx.beginPath(); ctx.ellipse(x, y, 8, 6, -.3, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle='#fff5f5'; ctx.fillRect(x-2, y-7, 3, 5); // osso
+    ctx.beginPath(); ctx.ellipse(x, y, 8*s, 6*s, -.3, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff5f5'; ctx.fillRect(x-2*s, y-7*s, 3*s, 5*s); // osso
   }
 }
 
@@ -1510,11 +1593,12 @@ function draw() {
   for (const pid in game.players) { const pp = game.players[pid]; ents.push({y: pp.y, fn: ((q)=>()=>drawOnePlayer(q,camx,camy))(pp)}); }
   ents.sort((a,b)=>a.y-b.y).forEach(e=>e.fn());
 
-  // partículas
+  // partículas (tamanho escala com uiScale p/ ficarem visíveis no celular)
+  const ps = uiScale();
   for (const pt of game.particles) {
     ctx.globalAlpha = clamp(pt.life*2,0,1);
     ctx.fillStyle = pt.color;
-    ctx.fillRect(pt.x-camx, pt.y-camy, pt.size, pt.size);
+    ctx.fillRect(pt.x-camx, pt.y-camy, pt.size*ps, pt.size*ps);
   }
   ctx.globalAlpha = 1;
 
@@ -1525,17 +1609,17 @@ function draw() {
   // texto de aviso: fogueira baixa
   if (game.fire.intensity < 25 && game.fire.intensity > 0) {
     ctx.fillStyle = 'rgba(255,80,0,' + (0.5+Math.sin(game.time*6)*0.3) + ')';
-    ctx.font = 'bold 20px Arial'; ctx.textAlign='center';
-    ctx.fillText('⚠ A FOGUEIRA ESTÁ MORRENDO! Alimente-a com madeira [E]', VIEW_W/2, 90*uiScale());
+    ctx.font = 'bold ' + Math.round(17*uiScale()) + 'px Arial'; ctx.textAlign='center';
+    ctx.fillText('⚠ A FOGUEIRA ESTÁ MORRENDO! Alimente-a com madeira', VIEW_W/2, 90*uiScale());
   }
   if (game.fire.intensity <= 0) {
     ctx.fillStyle = 'rgba(120,180,255,' + (0.6+Math.sin(game.time*8)*0.3) + ')';
-    ctx.font = 'bold 22px Arial'; ctx.textAlign='center';
+    ctx.font = 'bold ' + Math.round(19*uiScale()) + 'px Arial'; ctx.textAlign='center';
     ctx.fillText('❄ A FOGUEIRA APAGOU! Você está congelando!', VIEW_W/2, 90*uiScale());
   }
 
   // flutuadores
-  ctx.textAlign='center'; ctx.font='bold 14px Arial';
+  ctx.textAlign='center'; ctx.font='bold ' + Math.round(14*uiScale()) + 'px Arial';
   for (const fl of game.floaters) {
     ctx.globalAlpha = clamp(fl.life,0,1);
     ctx.fillStyle = '#000';
@@ -1549,14 +1633,19 @@ function draw() {
   drawMinimap();
 }
 
-// ------------------------- Desenho (canvas em TELA CHEIA / resolução nativa) -------------------------
+// ------------------------- Ajustes de renderização p/ celular -------------------------
 let VIEW_W = 960, VIEW_H = 640;   // tamanho lógico da viewport (= pixels reais do canvas)
+let RENDER_SCALE = 1;             // fator de escala dos sprites/HUD desenhados no canvas
 
 function fitCanvas() {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const vw = window.innerWidth, vh = window.innerHeight;
-  VIEW_W = Math.max(320, Math.round(vw * dpr));
-  VIEW_H = Math.max(240, Math.round(vh * dpr));
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  // Em celulares (tela pequena), NÃO usamos a resolução nativa alta: mantemos o
+  // canvas em ~1x CSS para que personagens, lobos e textos fiquem GRANDES e visíveis.
+  const small = Math.min(vw, vh) < 560;
+  RENDER_SCALE = small ? 1 : clamp(dpr, 1, 2);
+  VIEW_W = Math.max(320, Math.round(vw * RENDER_SCALE));
+  VIEW_H = Math.max(240, Math.round(vh * RENDER_SCALE));
   canvas.width = VIEW_W;
   canvas.height = VIEW_H;
   canvas.style.width = vw + 'px';
@@ -1568,7 +1657,7 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitC
 fitCanvas();
 
 // escala de UI dentro do canvas (HUD desenhado em px lógicos: ~1.0 no PC, maior no celular)
-function uiScale() { return clamp(Math.min(VIEW_W, VIEW_H) / 620, 0.8, 1.7); }
+function uiScale() { return clamp(Math.min(VIEW_W, VIEW_H) / 620, 0.8, 1.7) * RENDER_SCALE; }
 
 // ------------------------- Tela cheia + orientação paisagem -------------------------
 function tryFullscreen() {
@@ -1590,7 +1679,9 @@ document.addEventListener('visibilitychange', () => {
 // ------------------------- Minimapa (desenhado no canto do canvas) -------------------------
 function drawMinimap() {
   const s = uiScale();
-  const mw = Math.round(150*s), mh = Math.round(112*s);
+  // em telas pequenas o minimapa fica menor e mais discreto
+  const small = Math.min(VIEW_W, VIEW_H) < 620;
+  const mw = Math.round((small ? 108 : 150)*s), mh = Math.round((small ? 80 : 112)*s);
   const mx = VIEW_W - mw - 12*s, my = VIEW_H - mh - 12*s;
   ctx.fillStyle='rgba(0,0,0,.55)';
   ctx.fillRect(mx-3,my-3,mw+6,mh+6);
