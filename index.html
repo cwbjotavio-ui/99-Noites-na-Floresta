@@ -134,6 +134,21 @@
   #btnChop   { right: calc(18px + env(safe-area-inset-right));  bottom: calc(24px + env(safe-area-inset-bottom)); width: 76px; height: 76px; font-size: 30px; }
   #btnCook   { right: calc(104px + env(safe-area-inset-right)); bottom: calc(166px + env(safe-area-inset-bottom)); width: 60px; height: 60px; font-size: 24px; }
   #btnShop   { right: calc(26px + env(safe-area-inset-right));  bottom: calc(240px + env(safe-area-inset-bottom)); width: 54px; height: 54px; font-size: 22px; }
+  /* botões de construção (celular) — coluna à esquerda dos botões de ação */
+  #btnBuildWall { right: calc(176px + env(safe-area-inset-right)); bottom: calc(120px + env(safe-area-inset-bottom)); width: 54px; height: 54px; font-size: 22px; }
+  #btnBuildTrap { right: calc(176px + env(safe-area-inset-right)); bottom: calc(40px + env(safe-area-inset-bottom)); width: 54px; height: 54px; font-size: 22px; }
+  #btnBed       { right: calc(176px + env(safe-area-inset-right)); bottom: calc(200px + env(safe-area-inset-bottom)); width: 54px; height: 54px; font-size: 22px; }
+  @media (max-height: 420px) {
+    #btnAttack { bottom: calc(120px + env(safe-area-inset-bottom)); width: 64px; height: 64px; font-size: 28px; }
+    #btnChop   { width: 66px; height: 66px; font-size: 26px; }
+    #btnFeed   { width: 54px; height: 54px; font-size: 22px; bottom: calc(70px + env(safe-area-inset-bottom)); }
+    #btnCook   { width: 50px; height: 50px; font-size: 20px; bottom: calc(132px + env(safe-area-inset-bottom)); }
+    #btnShop   { width: 46px; height: 46px; font-size: 19px; bottom: calc(190px + env(safe-area-inset-bottom)); }
+    #btnBuildWall, #btnBuildTrap, #btnBed { width: 46px; height: 46px; font-size: 19px; right: calc(150px + env(safe-area-inset-right)); }
+    #btnBed { bottom: calc(160px + env(safe-area-inset-bottom)); }
+    #btnBuildWall { bottom: calc(104px + env(safe-area-inset-bottom)); }
+    #btnBuildTrap { bottom: calc(48px + env(safe-area-inset-bottom)); }
+  }
   #shopPanel { max-width: 92vw; max-height: 86vh; overflow-y: auto; }
 
   /* ---------- Botões Pausa / Sair (canto superior direito) ---------- */
@@ -183,15 +198,15 @@
 
   <div class="hud" id="bottomLeft">
     <div id="inventory">
-      <h3>🎒 INVENTÁRIO</h3>
-      <div>🪵 Madeira: <b id="invWood">0</b></div>
-      <div>🟤 Couro: <b id="invLeather">0</b></div>
-      <div>🍖 Carne: <b id="invMeat">0</b></div>
-      <div style="margin-top:4px;font-size:12px;color:#aaa">⚔️ Dano: <span id="statDmg">10</span> · 🪓 Lenha: <span id="statAxe">1</span>x</div>
+      <h3>🎒 INVENTÁRIO <span id="invCap"></span></h3>
+      <div>🪵 <b id="invWood">0</b> · 🪨 <b id="invStone">0</b> · ⛏️ <b id="invIron">0</b></div>
+      <div>🟤 <b id="invLeather">0</b> · 🍖 <b id="invMeat">0</b> · 🥕 <b id="invCarrot">0</b></div>
+      <div>🗝️ <b id="invKeys">0</b>/4 · 👧 <b id="invKids">0</b>/4</div>
+      <div style="margin-top:4px;font-size:12px;color:#aaa">⚔️ <span id="statDmg">10</span> · 🪓 <span id="statAxe">1</span>x · 🛏️ <span id="statBeds">0</span> · ❤️ +<span id="statBonus">0</span></div>
     </div>
   </div>
 
-  <div class="hud" id="bottomCenter"><div id="hint">Mover: WASD/joystick · E/🪓 coletar · 🔥 alimentar · Espaço/🗡️ atacar · B/🏪 loja · P/⏸ pausar</div></div>
+  <div class="hud" id="bottomCenter"><div id="hint">WASD mover · E/🪓 coletar/construir · Espaço/🗡️ atacar · B/🏪 loja · G/🍲 sopa · P/⏸ pausar</div></div>
 
   <!-- Controles de toque (celular) -->
   <div id="touchControls">
@@ -199,8 +214,11 @@
     <div class="tbtn" id="btnAttack" title="Atacar">🗡️</div>
     <div class="tbtn" id="btnFeed" title="Alimentar fogueira">🔥</div>
     <div class="tbtn" id="btnChop" title="Cortar / interagir">🪓</div>
-    <div class="tbtn" id="btnCook" title="Cozinhar sopa (na bancada)">🍲</div>
+    <div class="tbtn" id="btnCook" title="Cozinhar sopa (🍖1 + 🥕1)">🍲</div>
     <div class="tbtn" id="btnShop" title="Mercador">🏪</div>
+    <div class="tbtn" id="btnBed" title="Dormir na cama (avança até o amanhecer)">🛏️</div>
+    <div class="tbtn" id="btnBuildWall" title="Construir muralha (3 madeiras)">🧱</div>
+    <div class="tbtn" id="btnBuildTrap" title="Armadilha de coelho (2 madeiras)">🪤</div>
   </div>
 
   <!-- Botões de sistema: Pausar / Sair -->
@@ -224,18 +242,30 @@
   <!-- Shop -->
   <div id="shopPanel">
     <h2>🏪 Mercador Ambulante</h2>
-    <div class="sub">Gaste Couro 🟤 e Carne 🍖 em melhorias</div>
+    <div class="sub">Gaste Couro 🟤 e Carne 🍖 em melhorias · ⛏️ Ferro para itens especiais</div>
     <div class="shopItem">
-      <div><div class="name">🪓 Machado Melhorado <span id="axeLvl">(Nv.1)</span></div><div class="desc">+1 madeira por coleta de árvore</div></div>
+      <div><div class="name">🪓 Machado Melhorado <span id="axeLvl">(Nv.1)</span></div><div class="desc">+1 madeira/coleta e corta mais rápido (até Nv.5)</div></div>
       <button id="buyAxe">🟤2 🍖1</button>
     </div>
     <div class="shopItem">
-      <div><div class="name">⚔️ Lança Afiada <span id="spearLvl">(Nv.1)</span></div><div class="desc">+8 de dano contra lobos</div></div>
+      <div><div class="name">⚔️ Lança Afiada <span id="spearLvl">(Nv.1)</span></div><div class="desc">+8 de dano contra lobos e ursos</div></div>
       <button id="buySpear">🟤1 🍖2</button>
     </div>
     <div class="shopItem">
       <div><div class="name">🧥 Roupas de Frio <span id="clothLvl">(Nv.0)</span></div><div class="desc">Reduz o dano do frio longe do fogo</div></div>
       <button id="buyCloth">🟤3 🍖1</button>
+    </div>
+    <div class="shopItem">
+      <div><div class="name">🎒 Mochila Grande <span id="bagLvl">(Nv.0)</span></div><div class="desc">+15 de capacidade no inventário</div></div>
+      <button id="buyBag">🟤2 ⛏️2</button>
+    </div>
+    <div class="shopItem">
+      <div><div class="name">💪 Treino de Força <span id="strLvl">(Nv.0)</span></div><div class="desc">+20 de vida máxima permanente</div></div>
+      <button id="buyStr">🍖4 ⛏️3</button>
+    </div>
+    <div class="shopItem" style="background:rgba(255,215,0,.08);border-color:#b8860b">
+      <div><div class="name">🗝️ Chave da Caverna <span id="caveKeyTag"></span></div><div class="desc">Abre a CAVERNA GELADA (NE) — resgate a criança presa! Só há 1.</div></div>
+      <button id="buyCaveKey">⛏️8 🟤4 🍖4</button>
     </div>
     <button id="shopClose">Fechar [B]</button>
   </div>
@@ -245,7 +275,7 @@
     <!-- MENU PRINCIPAL -->
     <div id="menuMain" style="display:flex;flex-direction:column;align-items:center;">
       <h1>🔥 Chamas da Sobrevivência</h1>
-      <p>Mantenha a fogueira acesa! Colete madeira durante o dia, alimente o fogo e sobreviva às noites infestadas de lobos. Agora com <b>modo cooperativo online</b>: cada jogador usa seu próprio PC ou celular!</p>
+      <p>Mantenha a fogueira acesa! Colete 🪵 madeira, 🪨 pedra e ⛏️ ferro durante o dia; construa 🧱 muralhas, 🛏️ camas e 🪤 armadilhas de coelho na <b>bancada</b>. À noite, lobos 🐺 e ursos 🐻 atacam! <b>Objetivo:</b> resgate as <b>4 crianças perdidas</b> 👧 espalhadas pelo mapa — uma delas está presa na <b>Caverna Gelada</b> (Nordeste): consiga uma 🗝️ chave (chefes soltam, ou compre do Mercador) e abra o portão. Cada criança resgatada dá poder permanente ao grupo!</p>
       <input class="ovInput" id="nameInput" maxlength="12" placeholder="Seu nome" autocomplete="off">
       <div class="ovBtnRow">
         <button id="btnSolo">▶ Jogar Solo</button>
@@ -254,9 +284,9 @@
       </div>
       <div id="connStatus"></div>
       <div class="keys">
-        <b>PC:</b> <kbd>W A S D</kbd>/<kbd>Setas</kbd> mover · <kbd>E</kbd> coletar/alimentar · <kbd>Espaço</kbd> atacar · <kbd>B</kbd> loja · <kbd>P</kbd> pausar · <kbd>M</kbd> som<br>
-        <b>Celular:</b> joystick à esquerda (mover) · 🪓 segurar (cortar) · 🔥 (alimentar) · 🗡️ (atacar) · 🏪 (loja) · ⏸/Sair no canto superior<br>
-        Dia = 60s seguro para explorar · Noite = 60s com lobos e escuridão
+        <b>PC:</b> <kbd>W A S D</kbd>/<kbd>Setas</kbd> mover · <kbd>E</kbd> coletar/construir/interagir · <kbd>Espaço</kbd> atacar · <kbd>B</kbd> loja · <kbd>G</kbd> sopa · <kbd>R</kbd> dormir · <kbd>P</kbd> pausar<br>
+        <b>Celular:</b> joystick à esquerda · 🪓 segurar (cortar/miner/coletar) · 🔥 alimentar · 🗡️ atacar · 🧱 muralha · 🪤 armadilha · 🛏️ dormir · 🍲 sopa · 🏪 loja<br>
+        Dia = 60s para explorar · Noite = 60s com lobos, ursos e escuridão (mais clara que antes!)
       </div>
     </div>
 
@@ -318,13 +348,14 @@ const ctx = canvas.getContext('2d');
 // W/H não são mais fixos: use VIEW_W/VIEW_H (atualizados por fitCanvas)
 
 // ------------------------- Constantes -------------------------
-const WORLD_W = 2400, WORLD_H = 1800;          // tamanho do mapa
+const WORLD_W = 3600, WORLD_H = 2700;          // tamanho do mapa (expandido p/ exploração)
 const DAY_LEN = 60, NIGHT_LEN = 60;            // duração de cada fase (segundos)
 const FIRE_MAX = 100, FIRE_DRAIN = 1.6;        // decaimento da fogueira por segundo
 const FIRE_LIGHT_RADIUS_MIN = 90, FIRE_LIGHT_RADIUS_MAX = 300;
 const WOOD_PER_FEED = 12;                      // intensidade restaurada por madeira
 const COLLECT_TIME_BASE = 1.2;                 // segundos para cortar uma árvore (base)
 const TREE_RESPAWN = 25;                       // segundos para árvore brotar de novo
+const BASE_CAP = 40;                           // capacidade do inventário (sem mochila)
 const PLAYER_COLORS = ['#e74c3c','#3498db','#2ecc71','#9b59b6','#f1c40f','#e67e22','#1abc9c','#fd79a8'];
 
 // utilitário de seleção de elementos (definido cedo: é usado em toda a página)
@@ -376,7 +407,11 @@ window.addEventListener('keydown', e => {
   if (k === 'e') handleInteract();
   if (k === ' ') playerAttack();
   if (k === 'b') toggleShop();
-  if (k === 'c') cookSoup();
+  if (k === 'c' || k === 'g') cookSoup();
+  if (k === 'r') sleepInBed();
+  if (k === '1') buildThing('wall');
+  if (k === '2') buildThing('trap');
+  if (k === '3') buildThing('bed');
   if (k === 'm') muted = !muted;
 });
 window.addEventListener('keyup', e => { keys[(e.key || '').toLowerCase()] = false; });
@@ -468,6 +503,9 @@ const touchCtl = { mx: 0, my: 0, chop: false };
   actionBtn('btnAttack', guard(playerAttack));
   actionBtn('btnCook',   guard(cookSoup));
   actionBtn('btnShop',   guard(toggleShop));
+  actionBtn('btnBed',    guard(sleepInBed));
+  actionBtn('btnBuildWall', guard(() => buildThing('wall')));
+  actionBtn('btnBuildTrap', guard(() => buildThing('trap')));
 })();
 
 // ------------------------- Utilidades -------------------------
@@ -475,16 +513,33 @@ const rand = (a,b) => a + Math.random()*(b-a);
 const dist = (x1,y1,x2,y2) => Math.hypot(x2-x1, y2-y1);
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 
-function spawnTrees(n) {
-  const arr = [];
-  for (let i=0;i<n;i++){
-    let x,y,tries=0;
-    do {
-      x = rand(60, WORLD_W-60); y = rand(60, WORLD_H-60); tries++;
-    } while (dist(x,y,game.fire.x,game.fire.y) < 180 && tries < 40);
-    arr.push({ x, y, alive: true, respawn: 0, size: rand(0.85,1.25), sway: rand(0,Math.PI*2) });
+// ------------------------- Geração do MUNDO EXPANDIDO -------------------------
+// Tipos de recurso: trees (madeira), rocks (pedra), iron (ferro), stumps (tocos p/ bancada)
+function spawnResourceNodes(rng) {
+  // rng: função que gera número 0..1 determinístico (ou Math.random no solo)
+  const cx = WORLD_W/2, cy = WORLD_H/2;
+  const nodes = { trees: [], rocks: [], iron: [], stumps: [] };
+  const farFromFire = (x,y) => dist(x,y,cx,cy) > 200;
+  function place(arr, n, minD, maxD, extra) {
+    let tries = 0;
+    while (arr.length < n && tries < n * 60) {
+      tries++;
+      const x = rng()*(WORLD_W-140)+70, y = rng()*(WORLD_H-140)+70;
+      if (!farFromFire(x,y)) continue;
+      // não colocar em cima da área da caverna NE
+      if (x > WORLD_W-560 && y < 520) continue;
+      let ok = true;
+      for (const k in nodes) for (const o of nodes[k]) if (dist(x,y,o.x,o.y) < minD) { ok = false; break; }
+      if (!ok) continue;
+      const o = Object.assign({ x, y, alive: true, respawn: 0, hp: 1, size: 0.85 + rng()*0.4, sway: rng()*Math.PI*2 }, extra||{});
+      arr.push(o);
+    }
   }
-  return arr;
+  place(nodes.trees, 90, 46);
+  place(nodes.rocks, 26, 60, 0, { hp: 2 });          // pedra
+  place(nodes.iron,  14, 90, 0, { hp: 3 });           // ferro (mais raro, longe do centro)
+  place(nodes.stumps, 8, 120, 0, {});                 // tocos → bancadas
+  return nodes;
 }
 
 function makePlayer(id, name, color, idx) {
@@ -493,32 +548,82 @@ function makePlayer(id, name, color, idx) {
     x: WORLD_W/2 + 90 + Math.cos(idx*1.7)*46, y: WORLD_H/2 + Math.sin(idx*1.7)*46,
     isHost: idx === 0,
     r: 14, speed: 175, hp: 100, maxHp: 100, dir: 0,
-    attackCd: 0, swing: 0,
-    inv: { wood: 0, leather: 0, meat: 0 },
-    upgrades: { axe: 1, spear: 1, cloth: 0 },
-    collectingIdx: -1, collectProgress: 0,
-    hurtFlash: 0, walkPhase: 0,
+    attackCd: 0, swing: 0, hurtCd: 0,
+    inv: { wood: 0, stone: 0, iron: 0, leather: 0, meat: 0, carrot: 0, key: 0 },
+    upgrades: { axe: 1, spear: 1, cloth: 0, bag: 0, str: 0 },
+    collectingIdx: -1, collectType: null, collectProgress: 0,
+    hurtFlash: 0, walkPhase: 0, fedAccum: 0,
     inp: { mx:0, my:0, chop:false, seq:0 },
-    cmd: { interact:false, attack:false, shop:false, feed:false, cook:false },
+    cmd: { interact:false, attack:false, shop:false, feed:false, cook:false, sleep:false, buildWall:false, buildTrap:false, buildBed:false },
     connected: true, deathTimer: 0, downed: false,
   };
 }
+function invTotal(p) { const i = p.inv; return i.wood + i.stone + i.iron + i.leather + i.meat + i.carrot; }
+function invCap(p) { return BASE_CAP + p.upgrades.bag * 15; }
 
 function newGame(playerList) {
   game = {
     players: {},
     fire: { x: WORLD_W/2, y: WORLD_H/2, intensity: FIRE_MAX },
-    trees: [], wolves: [], drops: [], particles: [], floaters: [],
+    trees: [], rocks: [], iron: [], stumps: [], workbenches: [], beds: [], walls: [], traps: [],
+    chests: [], kids: [], bears: [], rabbits: [], boss: null,
+    wolves: [], drops: [], particles: [], floaters: [],
     time: 0, phase: 'day', phaseTimer: DAY_LEN, night: 0,
     camera: { x: 0, y: 0 },
     merchant: { x: WORLD_W/2 + 260, y: WORLD_H/2 - 180 },
-    gameOverReason: '',
-    spawnAccum: 0,
+    cave: { x: WORLD_W - 300, y: 260, gateOpen: false, kidFreed: false },
+    gameOverReason: '', win: false,
+    spawnAccum: 0, bearAccum: 0, rabbitAccum: 0,
+    kidsRescued: 0, bonusDmg: 0, bonusWood: 0,
+    caveKeyTaken: false,   // a chave "comprável" só existe 1 vez no mundo
   };
   playerList.forEach((pl, i) => {
     game.players[pl.id] = makePlayer(pl.id, pl.name, PLAYER_COLORS[i % PLAYER_COLORS.length], i);
   });
-  game.trees = spawnTrees(42);
+  const nodes = spawnResourceNodes(Math.random);
+  game.trees = nodes.trees; game.rocks = nodes.rocks; game.iron = nodes.iron; game.stumps = nodes.stumps;
+  // 4 crianças perdidas espalhadas pelo mapa (uma delas DENTRO da caverna)
+  const kidSpots = [
+    { x: 320,           y: WORLD_H - 340 },   // sudoeste
+    { x: WORLD_W - 420, y: WORLD_H - 300 },   // sudeste
+    { x: 260,           y: 300 },             // noroeste
+  ];
+  game.kids = kidSpots.map((s,i) => ({ x:s.x, y:s.y, rescued:false, idx:i }));
+  game.caveKid = { x: game.cave.x - 40, y: game.cave.y + 70, rescued: false, idx: 3 };
+  game.kids.push(game.caveKid);
+  // Baús no mapa: normais, de ouro e de rubi
+  game.chests = [];
+  const chestDefs = [
+    { type:'normal', n: 6 }, { type:'gold', n: 3 }, { type:'ruby', n: 1 },
+  ];
+  for (const cd of chestDefs) {
+    let tries = 0;
+    while (cd.n > 0 && tries < 400) {
+      tries++;
+      const x = rand(140, WORLD_W-140), y = rand(140, WORLD_H-140);
+      if (dist(x,y,game.fire.x,game.fire.y) < 350) continue;
+      if (x > WORLD_W-560 && y < 520) continue; // fora da área da caverna
+      let ok = true;
+      for (const c of game.chests) if (dist(x,y,c.x,c.y) < 220) { ok=false; break; }
+      if (!ok) continue;
+      game.chests.push({ x, y, type: cd.type, opened: false });
+      cd.n--;
+    }
+  }
+  // Chefe guardião da chave: urso-chefe perto da caverna
+  game.boss = { x: game.cave.x - 260, y: game.cave.y + 300, r: 30,
+    hp: 160, maxHp: 160, speed: 78, dmgCd: 0, knock: null, hitFlash: 0, dead: false, aggro: false, burning: false };
+  // Ursos comuns espalhados
+  game.bears = [];
+  for (let i=0;i<4;i++) spawnBearAt(rand(200,WORLD_W-200), rand(200,WORLD_H-200));
+  // Coelhos (dia, pacíficos — capturáveis com armadilha)
+  game.rabbits = [];
+  for (let i=0;i<10;i++) game.rabbits.push({ x: rand(150,WORLD_W-150), y: rand(150,WORLD_H-150), vx:0, vy:0, t: rand(0,3), caught:false });
+}
+function spawnBearAt(x, y) {
+  const baseHp = 55 + game.night * 8;
+  game.bears.push({ x, y, r: 22, hp: baseHp, maxHp: baseHp, speed: 88 + game.night*3,
+    dmgCd: 0, knock: null, hitFlash: 0, dead: false, wanderT: rand(0,3), wanderA: rand(0,Math.PI*2), sleeping: true, burning: false });
 }
 const me = () => game && game.players[myId];
 
@@ -620,7 +725,7 @@ function handleNetMsg(m) {
       setConn('');
       break;
     case 'start':
-      startClientGame(m.players, m.seed);
+      startClientGame(m.players, m.world);
       break;
     case 'snap':
       if (MODE === 'client') applySnapshot(m.s);
@@ -634,9 +739,16 @@ function handleNetMsg(m) {
         if (m.act === 'shop')     p.cmd.shop = true;
         if (m.act === 'feed')     p.cmd.feed = true;
         if (m.act === 'cook')     p.cmd.cook = true;
-        if (m.act === 'buy_axe')  buyFor(p, 'axe');
+        if (m.act === 'sleep')    p.cmd.sleep = true;
+        if (m.act === 'build_wall') p.cmd.buildWall = true;
+        if (m.act === 'build_trap') p.cmd.buildTrap = true;
+        if (m.act === 'build_bed')  p.cmd.buildBed = true;
+        if (m.act === 'buy_axe')    buyFor(p, 'axe');
         if (m.act === 'buy_spear')  buyFor(p, 'spear');
         if (m.act === 'buy_cloth')  buyFor(p, 'cloth');
+        if (m.act === 'buy_bag')    buyFor(p, 'bag');
+        if (m.act === 'buy_str')    buyFor(p, 'str');
+        if (m.act === 'buy_cavekey') buyCaveKeyFor(p);
       }
       break;
     case 'peerdown':
@@ -686,40 +798,36 @@ function renderLobby(listId, lobby, selfId, showHostTag) {
   }
 }
 
-function startClientGame(players, seed) {
+function startClientGame(players, world) {
   MODE = 'client';
   paused = false;
   newGame(players);
-  // re-seed das árvores para igualar visualmente ao host (apenas cosmético)
-  mulberry32Seed(seed);
-  game.trees = spawnTreesSeeded(42, seed);
+  // O host envia o mundo inteiro (árvores, rochas, ferro, tocos, baús, crianças, caverna)
+  if (world) applyWorld(world);
   $('overlay').style.display = 'none';
   $('touchControls').classList.add('on');
+  document.body.classList.add('playing');
   setSysBtns(true);
   running = true;
   lastTime = performance.now();
   updateHUD();
   requestAnimationFrame(loop);
 }
-let _rngState = 12345;
-function mulberry32Seed(s) { _rngState = s >>> 0; }
-function srand() { // PRNG determinístico para posições de árvores sincronizadas
-  _rngState |= 0; _rngState = _rngState + 0x6D2B79F5 | 0;
-  let t = Math.imul(_rngState ^ _rngState >>> 15, 1 | _rngState);
-  t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-  return ((t ^ t >>> 14) >>> 0) / 4294967296;
+
+// Recebe o estado estático do mundo vindo do host (idêntico para todos os dispositivos)
+function applyWorld(w) {
+  game.trees  = w.tr;
+  game.rocks  = w.rk;
+  game.iron   = w.ir;
+  game.stumps = w.sp;
+  game.chests = w.ch;
+  game.kids   = w.kd;
+  game.cave   = w.cv;
+  game.boss   = w.bs;
 }
-function spawnTreesSeeded(n, seed) {
-  mulberry32Seed(seed);
-  const arr = [];
-  for (let i=0;i<n;i++){
-    let x,y,tries=0;
-    do {
-      x = srand()*(WORLD_W-120)+60; y = srand()*(WORLD_H-120)+60; tries++;
-    } while (dist(x,y,WORLD_W/2,WORLD_H/2) < 180 && tries < 40);
-    arr.push({ x, y, alive: true, respawn: 0, size: 0.85 + srand()*0.4, sway: srand()*Math.PI*2 });
-  }
-  return arr;
+function buildWorld() {
+  return { tr: game.trees, rk: game.rocks, ir: game.iron, sp: game.stumps,
+           ch: game.chests, kd: game.kids, cv: game.cave, bs: game.boss };
 }
 
 // Aplica snapshot do host com interpolação suave
@@ -735,19 +843,30 @@ function applySnapshot(s) {
     else { p.px = p.rx; p.py = p.ry; }   // posição anterior vira origem da interpolação
     p.rx = sp.x; p.ry = sp.y; p.rt = now;
     p.x = sp.x; p.y = sp.y;              // fallback
-    p.dir = sp.d; p.hp = sp.hp; p.swing = sp.sw; p.hurtFlash = sp.hf;
-    p.collectingIdx = sp.ci; p.collectProgress = sp.cp;
+    p.dir = sp.d; p.hp = sp.hp; p.maxHp = sp.mh || p.maxHp; p.swing = sp.sw; p.hurtFlash = sp.hf;
+    p.collectingIdx = sp.ci; p.collectType = sp.ct; p.collectProgress = sp.cp;
     p.inv = sp.inv; p.upgrades = sp.up; p.walkPhase = sp.wp;
     p.connected = sp.cn !== false;
+    p.downed = !!sp.dn; p.deathTimer = sp.dt || 0;
   }
   for (const pid in game.players) if (!(pid in s.pl)) delete game.players[pid];
   game.fire.intensity = s.fi;
   game.phase = s.ph; game.phaseTimer = s.pt; game.night = s.ng; game.time = s.tm;
+  game.kidsRescued = s.kr || 0; game.bonusDmg = s.bd || 0; game.bonusWood = s.bw || 0;
   game.wolves = s.wl.map(w => ({ x:w.x, y:w.y, r:15, hp:w.hp, maxHp:w.mh, hitFlash:0, burning:w.b, dead:false }));
+  game.bears = s.br.map(b => ({ x:b.x, y:b.y, r:b.r||22, hp:b.hp, maxHp:b.mh, hitFlash:0, sleeping:b.sl, dead:false }));
+  if (s.bs) game.boss = Object.assign(game.boss || {}, { x:s.bs.x, y:s.bs.y, hp:s.bs.hp, maxHp:s.bs.mh, dead:!!s.bs.dead });
+  game.rabbits = s.rb.map(r => ({ x:r.x, y:r.y, caught:!!r.ca }));
+  game.traps = s.tp.map(t => ({ x:t.x, y:t.y, has:t.h }));
+  game.beds  = s.bds.map(b => ({ x:b.x, y:b.y }));
+  game.walls = s.wl2.map(w => ({ x:w.x, y:w.y, hp:w.hp }));
+  game.workbenches = s.wb.map(wb => ({ x:wb.x, y:wb.y }));
+  if (s.ch) game.chests = s.ch;                 // baús abertos sincronizados
+  if (s.kd) game.kids = s.kd;                   // crianças resgatadas sincronizadas
+  if (s.cv) game.cave = s.cv;                   // portão da caverna sincronizado
   game.drops  = s.dr.map(d => ({ x:d.x, y:d.y, type:d.ty, bob:d.b }));
   game.floaters = s.fl.map(f => ({ text:f.tx, x:f.x, y:f.y, life:f.l, color:f.c }));
   game.particles = [];
-  if (s.trees) game.trees = s.trees;
   if (s.over) { endGame(s.over); }
 }
 function lerpPlayers(dt) {
@@ -763,21 +882,34 @@ function lerpPlayers(dt) {
   }
 }
 function buildSnapshot() {
+  const r1 = v => +v.toFixed(1), r2 = v => +v.toFixed(2);
   const s = {
-    fi: +game.fire.intensity.toFixed(1), ph: game.phase, pt: +game.phaseTimer.toFixed(2),
-    ng: game.night, tm: +game.time.toFixed(2), over: game.gameOverReason || 0,
-    pl: {}, wl: [], dr: [], fl: [],
+    fi: r1(game.fire.intensity), ph: game.phase, pt: r2(game.phaseTimer),
+    ng: game.night, tm: r2(game.time), over: game.gameOverReason || 0,
+    kr: game.kidsRescued, bd: game.bonusDmg, bw: game.bonusWood,
+    pl: {}, wl: [], br: [], dr: [], fl: [], rb: [], tp: [], bds: [], wl2: [], wb: [],
+    ch: game.chests.map(c => ({ x:r1(c.x), y:r1(c.y), ty:c.type, op:!!c.opened })),
+    kd: game.kids.map(k => ({ x:r1(k.x), y:r1(k.y), rs:!!k.rescued })),
+    cv: { x: game.cave.x, y: game.cave.y, go: !!game.cave.gateOpen, kf: !!game.cave.kidFreed },
   };
   for (const pid in game.players) {
     const p = game.players[pid];
-    s.pl[pid] = { n:p.name, c:p.color, x:+p.x.toFixed(1), y:+p.y.toFixed(1), d:+p.dir.toFixed(2),
-      hp:+p.hp.toFixed(1), sw:+p.swing.toFixed(2), hf:+p.hurtFlash.toFixed(2),
-      ci:p.collectingIdx, cp:+p.collectProgress.toFixed(2), inv:p.inv, up:p.upgrades,
-      wp:+p.walkPhase.toFixed(2), cn:p.connected };
+    s.pl[pid] = { n:p.name, c:p.color, x:r1(p.x), y:r1(p.y), d:r2(p.dir),
+      hp:r1(p.hp), mh:p.maxHp, sw:r2(p.swing), hf:r2(p.hurtFlash),
+      ci:p.collectingIdx, ct:p.collectType, cp:r2(p.collectProgress), inv:p.inv, up:p.upgrades,
+      wp:r2(p.walkPhase), cn:p.connected, dn:!!p.downed, dt:r1(p.deathTimer||0) };
   }
-  for (const w of game.wolves) if (!w.dead) s.wl.push({ x:+w.x.toFixed(1), y:+w.y.toFixed(1), hp:+w.hp.toFixed(1), mh:w.maxHp, b:!!w.burning });
-  for (const d of game.drops) if (!d.taken) s.dr.push({ x:+d.x.toFixed(1), y:+d.y.toFixed(1), ty:d.type, b:+d.bob.toFixed(1) });
-  for (const f of game.floaters) s.fl.push({ tx:f.text, x:+f.x.toFixed(1), y:+f.y.toFixed(1), l:+f.life.toFixed(2), c:f.color });
+  for (const w of game.wolves) if (!w.dead) s.wl.push({ x:r1(w.x), y:r1(w.y), hp:r1(w.hp), mh:w.maxHp, b:!!w.burning });
+  for (const b of game.bears) if (!b.dead) s.br.push({ x:r1(b.x), y:r1(b.y), r:b.r, hp:r1(b.hp), mh:b.maxHp, sl:!!b.sleeping });
+  if (game.boss && !game.boss.dead) s.bs = { x:r1(game.boss.x), y:r1(game.boss.y), hp:r1(game.boss.hp), mh:game.boss.maxHp };
+  else if (game.boss) s.bs = { dead:true };
+  for (const rb of game.rabbits) if (!rb.caught) s.rb.push({ x:r1(rb.x), y:r1(rb.y) });
+  for (const t of game.traps) s.tp.push({ x:r1(t.x), y:r1(t.y), h:!!t.hasPrey });
+  for (const b of game.beds) s.bds.push({ x:r1(b.x), y:r1(b.y) });
+  for (const w of game.walls) if (w.hp > 0) s.wl2.push({ x:r1(w.x), y:r1(w.y), hp:r1(w.hp) });
+  for (const wb of game.workbenches) s.wb.push({ x:r1(wb.x), y:r1(wb.y) });
+  for (const d of game.drops) if (!d.taken) s.dr.push({ x:r1(d.x), y:r1(d.y), ty:d.type, b:r1(d.bob) });
+  for (const f of game.floaters) s.fl.push({ tx:f.text, x:r1(f.x), y:r1(f.y), l:r2(f.life), c:f.color });
   return s;
 }
 
@@ -833,11 +965,11 @@ const SFX = {
 
 // ------------------------- Interações -------------------------
 function addFloater(text, x, y, color) {
-  game.floaters.push({ text, x, y, life: 1.2, color: color || '#fff' });
+  game.floaters.push({ text, x, y, life: 1.6, color: color || '#fff' });
   if (game.floaters.length > 40) game.floaters.splice(0, game.floaters.length - 40);
 }
 
-// 🍲 Cozinhar sopa: precisa de 1 carne + 1 couro; recupera 35 de vida e 12 de fogueira
+// 🍲 Sopa da bancada: 1 carne + 1 cenoura → +35 vida e +12 fogueira
 function cookSoup(p) {
   p = p || me();
   if (!p) return;
@@ -845,11 +977,17 @@ function cookSoup(p) {
   doCook(p);
 }
 function doCook(p) {
-  if (p.inv.meat < 1 || p.inv.leather < 1) {
-    if (p === me()) addFloater('🍲 Precisa de 1🍖 + 1🟤!', p.x, p.y - 30, '#e74c3c');
+  const nearFire = dist(p.x, p.y, game.fire.x, game.fire.y) < 130;
+  const nearBench = nearestWorkbench(p.x, p.y, 70) >= 0;
+  if (!nearFire && !nearBench) {
+    if (p === me()) addFloater('🍲 Cozinhe perto da fogueira ou da bancada!', p.x, p.y - 30, '#ffd97a');
     return;
   }
-  p.inv.meat--; p.inv.leather--;
+  if (p.inv.meat < 1 || p.inv.carrot < 1) {
+    if (p === me()) addFloater('🍲 Precisa de 1🍖 + 1🥕!', p.x, p.y - 30, '#e74c3c');
+    return;
+  }
+  p.inv.meat--; p.inv.carrot--;
   p.hp = Math.min(p.maxHp, p.hp + 35);
   game.fire.intensity = clamp(game.fire.intensity + 12, 0, FIRE_MAX);
   if (p === me()) SFX.cook();
@@ -861,8 +999,12 @@ function doCook(p) {
 function feedFire(p) {
   p = p || me();
   if (!p) return;
+  if (MODE === 'client') { sendInput('feed'); return; }
+  doFeedFire(p);
+}
+function doFeedFire(p) {
   const dFire = dist(p.x, p.y, game.fire.x, game.fire.y);
-  if (dFire >= 60) { if (p === me()) addFloater('Chegue mais perto da fogueira!', p.x, p.y - 30, '#ffd97a'); return; }
+  if (dFire >= 70) { if (p === me()) addFloater('Chegue mais perto da fogueira!', p.x, p.y - 30, '#ffd97a'); return; }
   if (p.inv.wood > 0 && game.fire.intensity < FIRE_MAX) {
     const use = Math.min(p.inv.wood, 3);
     p.inv.wood -= use;
@@ -872,8 +1014,25 @@ function feedFire(p) {
     for (let i=0;i<10;i++) spawnParticle(game.fire.x, game.fire.y - 10, '#f39c12', rand(30,80));
     updateHUD();
   } else if (p.inv.wood === 0 && p === me()) {
-    addFloater('Sem madeira!', p.x, p.y - 30, '#e74c3c');
+    addFloater('Sem madeira! Segure o 🪓 perto de uma árvore', p.x, p.y - 30, '#e74c3c');
   }
+}
+
+// Procura o recurso mais próximo (árvore/pedra/ferro/baú/coelho-armadilha...)
+function nearestNodeIdx(x, y, range) {
+  // retorna { type, idx }
+  let best = null, bd = range;
+  for (let i=0;i<game.trees.length;i++) { const t = game.trees[i]; if (!t.alive) continue; const d = dist(x,y,t.x,t.y); if (d < bd) { bd=d; best={type:'tree', idx:i}; } }
+  for (let i=0;i<game.rocks.length;i++)  { const t = game.rocks[i];  if (!t.alive) continue; const d = dist(x,y,t.x,t.y); if (d < bd) { bd=d; best={type:'rock', idx:i}; } }
+  for (let i=0;i<game.iron.length;i++)   { const t = game.iron[i];   if (!t.alive) continue; const d = dist(x,y,t.x,t.y); if (d < bd) { bd=d; best={type:'iron', idx:i}; } }
+  for (let i=0;i<game.stumps.length;i++) { const t = game.stumps[i]; const d = dist(x,y,t.x,t.y); if (d < bd) { bd=d; best={type:'stump', idx:i}; } }
+  for (let i=0;i<game.chests.length;i++) { const c = game.chests[i]; if (c.opened) continue; const d = dist(x,y,c.x,c.y); if (d < bd) { bd=d; best={type:'chest', idx:i}; } }
+  return best;
+}
+function nearestWorkbench(x, y, range) {
+  let best = -1, bd = range;
+  for (let i=0;i<game.workbenches.length;i++) { const wb = game.workbenches[i]; const d = dist(x,y,wb.x,wb.y); if (d < bd) { bd=d; best=i; } }
+  return best;
 }
 
 function handleInteract() {
@@ -881,24 +1040,172 @@ function handleInteract() {
   interactFor(me());
 }
 function interactFor(p) {
-  // 1) Perto da fogueira → alimentar com madeira
+  if (!p || p.downed) return;
+  // prioridade 1: fogueira (alimentar / pegar comida da sopa)
   const dFire = dist(p.x, p.y, game.fire.x, game.fire.y);
-  if (dFire < 60) { feedFire(p); return; }
-  // 2) Perto de árvore viva → iniciar coleta
-  const ti = nearestTreeIdx(p.x, p.y, 55);
-  if (ti >= 0 && game.trees[ti].alive) {
-    if (p.collectingIdx !== ti) { p.collectingIdx = ti; p.collectProgress = 0; }
+  if (dFire < 70) { doFeedFire(p); return; }
+  // prioridade 2: criança perdida próxima → resgata
+  for (const k of game.kids) {
+    if (k.rescued) continue;
+    if (dist(p.x, p.y, k.x, k.y) < 55) { rescueKid(p, k); return; }
+  }
+  // prioridade 3: portão da caverna
+  const gate = { x: game.cave.x - 10, y: game.cave.y + 30 };
+  if (dist(p.x, p.y, gate.x, gate.y) < 70) { tryOpenCave(p); return; }
+  // prioridade 4: armadilha com presa → coletar carne de coelho
+  for (const t of game.traps) {
+    if (t.hasPrey && dist(p.x, p.y, t.x, t.y) < 50) {
+      t.hasPrey = false;
+      giveItem(p, 'meat', 1); giveItem(p, 'carrot', 1);
+      addFloater('🐇 Coelho! +1🍖 +1🥕', t.x, t.y - 20, '#ffd97a');
+      if (p === me()) SFX.pickup();
+      return;
+    }
+  }
+  // prioridade 5: iniciar coleta do recurso mais próximo (o 🪓 segurado continua a coleta no update)
+  const n = nearestNodeIdx(p.x, p.y, 62);
+  if (!n) { if (p === me()) addFloater('Vá até uma árvore 🌳, rocha 🪨 ou baú 📦', p.x, p.y - 30, '#ffd97a'); return; }
+  if (n.type === 'chest') { openChest(p, game.chests[n.idx]); return; }
+  if (n.type === 'stump') { buildFromStump(p, game.stumps[n.idx]); return; }
+  if (p.collectingIdx !== n.idx || p.collectType !== n.type) { p.collectingIdx = n.idx; p.collectType = n.type; p.collectProgress = 0; }
+}
+
+// dá item respeitando a capacidade da mochila
+function giveItem(p, key, amount) {
+  const space = invCap(p) - invTotal(p);
+  if (key === 'key') { p.inv.key += amount; return true; }
+  const give = Math.min(amount, Math.max(0, space));
+  if (give <= 0) { if (p === me()) addFloater('🎒 Mochila cheia! Venda no mercador', p.x, p.y - 30, '#e74c3c'); return false; }
+  p.inv[key] += give;
+  return true;
+}
+
+function openChest(p, c) {
+  c.opened = true;
+  let msg;
+  if (c.type === 'normal') { giveItem(p,'stone',3); giveItem(p,'leather',1); msg='📦 +3🪨 +1🟤'; }
+  else if (c.type === 'gold') { giveItem(p,'iron',3); giveItem(p,'stone',4); msg='✨ BAÚ DE OURO! +3⛏️ +4🪨'; }
+  else { giveItem(p,'iron',6); giveItem(p,'leather',3); giveItem(p,'meat',2); msg='💎 BAÚ DE RUBI! +6⛏️ +3🟤 +2🍖'; }
+  addFloater(msg, c.x, c.y - 26, c.type==='ruby' ? '#ff5da2' : (c.type==='gold' ? '#ffd700' : '#ffe08a'));
+  if (p === me()) SFX.pickup();
+  for (let i=0;i<10;i++) spawnParticle(c.x, c.y - 8, '#ffd700', rand(20,60));
+  updateHUD();
+}
+
+function buildFromStump(p, stump) {
+  // tocar num toco constrói a BANCADA (precisa de 5 madeiras)
+  if (nearestWorkbench(stump.x, stump.y, 40) >= 0) {
+    if (p === me()) addFloater('🔨 Bancada já construída aqui! Use 🧱🪤🛏️', stump.x, stump.y - 30, '#aee9ff');
+    return;
+  }
+  if (p.inv.wood < 5) { if (p === me()) addFloater('🔨 Bancada: precisa de 5 🪵', p.x, p.y - 30, '#e74c3c'); return; }
+  p.inv.wood -= 5;
+  game.workbenches.push({ x: stump.x, y: stump.y - 6 });
+  addFloater('🔨 BANCADA construída! Agora crie 🧱 muralhas, 🪤 armadilhas e 🛏️ camas', stump.x, stump.y - 34, '#a3e635');
+  if (p === me()) SFX.buy();
+  updateHUD();
+}
+
+// ---------- CONSTRUÇÕES (muralha / armadilha / cama) — exigem bancada por perto ----------
+function buildThing(kind, p) {
+  p = p || me();
+  if (!p) return;
+  if (MODE === 'client') { sendInput('build_' + kind); return; }
+  doBuild(p, kind);
+}
+function doBuild(p, kind) {
+  if (kind === 'bed') {
+    // cama pode ser feita em qualquer lugar (2 madeiras), mas na bancada é de graça de distância
+    if (p.inv.wood < 2) { if (p === me()) addFloater('🛏️ Cama: precisa de 2 🪵', p.x, p.y - 30, '#e74c3c'); return; }
+    if (game.beds.some(b => dist(b.x,b.y,p.x,p.y) < 40)) { if (p === me()) addFloater('Já existe uma cama aqui!', p.x, p.y - 30, '#ffd97a'); return; }
+    p.inv.wood -= 2;
+    game.beds.push({ x: p.x + Math.cos(p.dir)*34, y: p.y + Math.sin(p.dir)*34 });
+    addFloater('🛏️ Cama construída! Toque nela à noite para dormir', p.x, p.y - 34, '#aee9ff');
+    if (p === me()) SFX.buy(); updateHUD(); return;
+  }
+  // muralha e armadilha precisam de bancada por perto
+  const wi = nearestWorkbench(p.x, p.y, 90);
+  if (wi < 0) { if (p === me()) addFloater('🔨 Construa perto de uma BANCADA (toque num toco 🪵)', p.x, p.y - 30, '#ffd97a'); return; }
+  if (kind === 'wall') {
+    if (p.inv.wood < 2 || p.inv.stone < 1) { if (p === me()) addFloater('🧱 Muralha: 2🪵 + 1🪨', p.x, p.y - 30, '#e74c3c'); return; }
+    const bx = p.x + Math.cos(p.dir)*40, by = p.y + Math.sin(p.dir)*40;
+    if (game.walls.some(w => w.hp>0 && dist(w.x,w.y,bx,by) < 30)) { if (p === me()) addFloater('Muito perto de outra muralha!', p.x, p.y - 30, '#ffd97a'); return; }
+    p.inv.wood -= 2; p.inv.stone -= 1;
+    game.walls.push({ x: bx, y: by, hp: 60, maxHp: 60 });
+    addFloater('🧱 Muralha! Bloqueia lobos e ursos', bx, by - 24, '#a3e635');
+    if (p === me()) SFX.buy(); updateHUD(); return;
+  }
+  if (kind === 'trap') {
+    if (p.inv.wood < 2) { if (p === me()) addFloater('🪤 Armadilha: 2🪵', p.x, p.y - 30, '#e74c3c'); return; }
+    if (game.traps.some(t => dist(t.x,t.y,p.x,p.y) < 40)) { if (p === me()) addFloater('Já tem uma armadilha aqui!', p.x, p.y - 30, '#ffd97a'); return; }
+    p.inv.wood -= 2;
+    game.traps.push({ x: p.x, y: p.y, hasPrey: false });
+    addFloater('🪤 Armadilha montada! Coelhos 🐇 caem nela durante o dia', p.x, p.y - 24, '#a3e635');
+    if (p === me()) SFX.buy(); updateHUD(); return;
   }
 }
-function nearestTreeIdx(x, y, range) {
-  let best = -1, bd = range;
-  for (let i=0;i<game.trees.length;i++) {
-    const t = game.trees[i];
-    if (!t.alive) continue;
-    const d = dist(x, y, t.x, t.y);
-    if (d < bd) { bd = d; best = i; }
+
+// ---------- DORMIR (avança a noite) ----------
+function sleepInBed(p) {
+  p = p || me();
+  if (!p) return;
+  if (MODE === 'client') { sendInput('sleep'); return; }
+  doSleep(p);
+}
+function doSleep(p) {
+  if (game.phase === 'day') { if (p === me()) addFloater('☀️ Só dá pra dormir à noite! 😴', p.x, p.y - 30, '#ffd97a'); return; }
+  const b = game.beds.find(b => dist(b.x, b.y, p.x, p.y) < 55);
+  if (!b) { if (p === me()) addFloater('🛏️ Vá até uma CAMA para dormir (2🪵 no botão 🛏️)', p.x, p.y - 30, '#e74c3c'); return; }
+  // dorme até o amanhecer: todos vivos recuperam um pouco e o tempo avança
+  game.phase = 'day'; game.phaseTimer = DAY_LEN; game.night++;
+  for (const w of game.wolves) if (!w.dead) w.burning = true;
+  for (const pid in game.players) {
+    const q = game.players[pid];
+    if (!q.downed) q.hp = Math.min(q.maxHp, q.hp + 25);
   }
-  return best;
+  addFloater('😴 Você dormiu até o amanhecer! Noite ' + game.night + ' sobrevivida', b.x, b.y - 34, '#aee9ff');
+  SFX.dawn();
+  updateHUD();
+}
+
+// ---------- CRIANÇAS / CAVERNA / VITÓRIA ----------
+function rescueKid(p, k) {
+  k.rescued = true;
+  game.kidsRescued++;
+  // bônus permanente do grupo: +5 de dano e +1 madeira por coleta
+  game.bonusDmg += 5; game.bonusWood += 1;
+  for (const pid in game.players) { const q = game.players[pid]; q.maxHp += 10; q.hp = Math.min(q.maxHp, q.hp + 10); }
+  addFloater('👧 CRIANÇA RESGATADA! (' + game.kidsRescued + '/4) O grupo ganhou poder! ❤️+10 ⚔️+5 🪵+1', k.x, k.y - 36, '#7dffb0');
+  for (let i=0;i<16;i++) spawnParticle(k.x, k.y - 10, '#7dffb0', rand(30,80));
+  if (p === me()) SFX.buy();
+  checkWin();
+  updateHUD();
+}
+function tryOpenCave(p) {
+  if (game.cave.gateOpen) {
+    // portão já aberto: encostar na criança presa resgata
+    const ck = game.kids[3];
+    if (!ck.rescued && dist(p.x, p.y, ck.x, ck.y) < 60) rescueKid(p, ck);
+    else if (p === me()) addFloater('🚪 O portão está aberto! Resgate a criança 👧 lá dentro', p.x, p.y - 30, '#aee9ff');
+    return;
+  }
+  if (p.inv.key >= 1) {
+    p.inv.key--;
+    game.cave.gateOpen = true;
+    addFloater('🗝️ Portão da caverna ABERTO! A criança está lá dentro 👧', game.cave.x, game.cave.y - 20, '#ffd700');
+    if (p === me()) SFX.buy();
+    for (let i=0;i<14;i++) spawnParticle(game.cave.x, game.cave.y, '#ffd700', rand(25,70));
+  } else if (p === me()) {
+    addFloater('🚪 Portão trancado! Precisa de 1 🗝️ (derrote o URSO-CHEFE 🐻 perto daqui ou compre no Mercador)', p.x, p.y - 30, '#ff9f43');
+  }
+}
+function checkWin() {
+  if (game.kids.filter(k => k.rescued).length >= 4) {
+    game.win = true;
+    endGame('🎉 TODAS AS 4 CRIANÇAS FORAM RESGATADAS! A aldeia está salva — vocês são heróis!');
+    return true;
+  }
+  return false;
 }
 
 function playerAttack() {
